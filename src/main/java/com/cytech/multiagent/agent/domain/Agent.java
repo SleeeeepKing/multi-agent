@@ -1,5 +1,6 @@
 package com.cytech.multiagent.agent.domain;
 
+import com.cytech.multiagent.commen.Client;
 import com.cytech.multiagent.agent.domain.enums.Direction;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,12 +19,14 @@ public class Agent extends Thread {
     private Cell cell;
     private Board board;
     private Semaphore semaphore;
+    private Client client;
     private List<String> moveHistory;
 
     public Agent(Cell cell, Board board, Semaphore semaphore) {
         this.cell = cell;
         this.board = board;
         this.semaphore = semaphore;
+        this.client = new Client("localhost", 8888);
         this.moveHistory = new ArrayList<>();
     }
 
@@ -159,6 +162,16 @@ public boolean move() {
         return board.getCells()[row][col] == null;
     }
 
+    /*    @Override
+        public void run() {
+            while (!move()) {
+                try {
+                    Thread.sleep(100); // 每次尝试移动前，线程等待一段时间
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }*/
     @Override
     public void run() {
         while (!move()) {
@@ -168,6 +181,10 @@ public boolean move() {
                 e.printStackTrace();
             }
         }
+
+        String message = "Agent " + cell.getId() + " has reached its target position.";
+        client.sendMessage(message);
+        client.closeConnection();
     }
 
 }

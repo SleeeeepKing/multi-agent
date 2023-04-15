@@ -1,15 +1,19 @@
 package com.cytech.multiagent.agent.service;
-
 import com.cytech.multiagent.agent.domain.Agent;
 import com.cytech.multiagent.agent.domain.Board;
 import com.cytech.multiagent.agent.domain.Cell;
 import com.cytech.multiagent.agent.domain.Position;
+import com.cytech.multiagent.commen.Server;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 
 @Service
 public class GameService {
@@ -17,12 +21,13 @@ public class GameService {
     private static final int BOARD_SIZE = 5;
     private static final int AGENT_COUNT = 4;
     private static final int MAX_STEPS = 100;
+    private Server server;
 
     private Board board;
     private List<Agent> agents;
     private Semaphore semaphore;
 
-    public void run() {
+    /*public void run() {
         board = Board.getInstance(BOARD_SIZE);
         semaphore = new Semaphore(1);
 
@@ -47,6 +52,23 @@ public class GameService {
         for (Agent agent : agents) {
             System.out.println("Agent " + agent.getCell().getId() + " 目标位置：" + agent.getCell().getTargetPosition() + " 移动历史: " + agent.getMoveHistory());
         }
+    }*/
+    public void run() {
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
+
+        executorService.submit(() -> {
+            server.startServer();
+        });
+
+        for (Agent agent : agents) {
+            executorService.submit(agent);
+        }
+
+        executorService.shutdown();
+        while (!executorService.isTerminated()) {
+        }
+
+        System.out.println("Game over!");
     }
 
     private void initializeAgents() {
@@ -72,6 +94,9 @@ public class GameService {
             Agent agent = new Agent(cell, board, semaphore);
             agents.add(agent);
         }
+        // Start the server
+        this.server = new Server(8888);
+        new Thread(() -> server.startServer()).start();
     }
 
 
