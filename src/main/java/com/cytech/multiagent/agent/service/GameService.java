@@ -45,7 +45,7 @@ public class GameService {
         printBoard();
 
         for (Agent agent : agents) {
-            System.out.println("Agent " + agent.getCell().getId() + " 的移动历史: " + agent.getMoveHistory());
+            System.out.println("Agent " + agent.getCell().getId() + " 目标位置：" + agent.getCell().getTargetPosition() + " 移动历史: " + agent.getMoveHistory());
         }
     }
 

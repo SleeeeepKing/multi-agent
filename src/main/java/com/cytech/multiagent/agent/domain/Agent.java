@@ -26,6 +26,7 @@ public class Agent extends Thread {
         this.semaphore = semaphore;
         this.moveHistory = new ArrayList<>();
     }
+
     public boolean move() {
         Position currentPosition = cell.getCurrentPosition();
         Position targetPosition = cell.getTargetPosition();
@@ -59,6 +60,41 @@ public class Agent extends Thread {
 
         return false;
     }
+    /*
+public boolean move() {
+    Position currentPosition = cell.getCurrentPosition();
+    Position targetPosition = cell.getTargetPosition();
+
+    if (currentPosition.equals(targetPosition)) {
+        return false;
+    }
+
+    Direction direction = getDirection(currentPosition, targetPosition);
+    if (direction != null) {
+        Position newPosition = getNewPosition(currentPosition, direction);
+
+        try {
+            semaphore.acquire(); // 获取许可
+
+            if (canMoveTo(newPosition)) {
+                board.updateCell(currentPosition, newPosition);
+                cell.setCurrentPosition(newPosition);
+                moveHistory.add(String.valueOf(newPosition));
+
+                semaphore.release(); // 释放许可
+                return true;
+            }
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            semaphore.release(); // 确保许可被释放
+        }
+    }
+
+    return false;
+}
+*/
 
 
     public List<String> getMoveHistory() {
@@ -82,6 +118,23 @@ public class Agent extends Thread {
 
         return possibleDirections;
     }
+/*
+
+    private Direction getDirection(Position currentPosition, Position targetPosition) {
+        if (targetPosition.getRow() < currentPosition.getRow()) {
+            return Direction.UP;
+        } else if (targetPosition.getRow() > currentPosition.getRow()) {
+            return Direction.DOWN;
+        } else if (targetPosition.getCol() < currentPosition.getCol()) {
+            return Direction.LEFT;
+        } else if (targetPosition.getCol() > currentPosition.getCol()) {
+            return Direction.RIGHT;
+        } else {
+            return null;
+        }
+    }
+*/
+
 
     private Position getNewPosition(Position currentPosition, Direction direction) {
         Position newPosition = new Position(currentPosition.getRow(), currentPosition.getCol());
