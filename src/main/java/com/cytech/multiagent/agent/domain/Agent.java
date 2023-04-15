@@ -2,17 +2,30 @@ package com.cytech.multiagent.agent.domain;
 
 import com.cytech.multiagent.agent.domain.enums.Direction;
 import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
+@EqualsAndHashCode(callSuper = true)
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Agent {
+public class Agent extends Thread {
     private Cell cell;
     private Board board;
+    private Semaphore semaphore;
+    private List<String> moveHistory;
 
+    public Agent(Cell cell, Board board, Semaphore semaphore) {
+        this.cell = cell;
+        this.board = board;
+        this.semaphore = semaphore;
+        this.moveHistory = new ArrayList<>();
+    }
     public boolean move() {
         Position currentPosition = cell.getCurrentPosition();
         Position targetPosition = cell.getTargetPosition();
@@ -24,15 +37,34 @@ public class Agent {
         List<Direction> possibleDirections = getPossibleDirections(currentPosition, targetPosition);
         for (Direction direction : possibleDirections) {
             Position newPosition = getNewPosition(currentPosition, direction);
-            if (canMoveTo(newPosition)) {
-                board.updateCell(currentPosition, newPosition);
-                cell.setCurrentPosition(newPosition);
-                return true;
+
+            try {
+                semaphore.acquire(); // 获取许可
+
+                if (canMoveTo(newPosition)) {
+                    board.updateCell(currentPosition, newPosition);
+                    cell.setCurrentPosition(newPosition);
+                    moveHistory.add(String.valueOf(newPosition));
+
+                    semaphore.release(); // 释放许可
+                    return true;
+                }
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                semaphore.release(); // 确保许可被释放
             }
         }
 
         return false;
     }
+
+
+    public List<String> getMoveHistory() {
+        return moveHistory;
+    }
+
 
     private List<Direction> getPossibleDirections(Position currentPosition, Position targetPosition) {
         List<Direction> possibleDirections = new ArrayList<>();
@@ -73,6 +105,18 @@ public class Agent {
 
         return board.getCells()[row][col] == null;
     }
+
+    @Override
+    public void run() {
+        while (!move()) {
+            try {
+                Thread.sleep(100); // 每次尝试移动前，线程等待一段时间
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 }
 
 

@@ -9,61 +9,80 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.Semaphore;
 
 @Service
 public class GameService {
-    private static final int BOARD_SIZE = 5;
-    private final Board board;
-    private final List<Agent> agents;
 
-    public GameService() {
-        board = Board.getInstance(BOARD_SIZE);
-        agents = initializeAgents();
-    }
+    private static final int BOARD_SIZE = 5;
+    private static final int AGENT_COUNT = 4;
+    private static final int MAX_STEPS = 100;
+
+    private Board board;
+    private List<Agent> agents;
+    private Semaphore semaphore;
 
     public void run() {
-        int totalMoves = 0;
-        boolean isComplete = false;
+        board = Board.getInstance(BOARD_SIZE);
+        semaphore = new Semaphore(1);
 
-        while (!isComplete) {
-            isComplete = true;
+        initializeAgents();
+        printBoard();
 
-            for (Agent agent : agents) {
-                boolean moved = agent.move();
-                if (moved) {
-                    totalMoves++;
-                    isComplete = false;
-                }
+        for (Agent agent : agents) {
+            agent.start();
+        }
+
+        for (Agent agent : agents) {
+            try {
+                agent.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
 
-        System.out.println("游戏结束，总移动步数: " + totalMoves);
+        System.out.println("游戏结束!");
+        printBoard();
+
+        for (Agent agent : agents) {
+            System.out.println("Agent " + agent.getCell().getId() + " 的移动历史: " + agent.getMoveHistory());
+        }
     }
 
-    private List<Agent> initializeAgents() {
-        List<Agent> agents = new ArrayList<>();
+    private void initializeAgents() {
+        agents = new ArrayList<>();
+
         Random random = new Random();
+        for (int i = 0; i < AGENT_COUNT; i++) {
+            Position initialPosition;
+            Position targetPosition;
 
-        for (int i = 1; i <= BOARD_SIZE * BOARD_SIZE; i++) {
-            int row = random.nextInt(BOARD_SIZE);
-            int col = random.nextInt(BOARD_SIZE);
+            do {
+                initialPosition = new Position(random.nextInt(BOARD_SIZE), random.nextInt(BOARD_SIZE));
+            } while (board.getCells()[initialPosition.getRow()][initialPosition.getCol()] != null);
 
-            while (board.getCells()[row][col] != null) {
-                row = random.nextInt(BOARD_SIZE);
-                col = random.nextInt(BOARD_SIZE);
-            }
+            do {
+                targetPosition = new Position(random.nextInt(BOARD_SIZE), random.nextInt(BOARD_SIZE));
+            } while (targetPosition.equals(initialPosition));
 
-            Position currentPosition = new Position(row, col);
-            Position targetPosition = new Position((i - 1) / BOARD_SIZE, (i - 1) % BOARD_SIZE);
+            Cell cell = new Cell(i + 1, initialPosition, targetPosition);
+            board.updateCell(initialPosition, targetPosition);
+            board.getCells()[initialPosition.getRow()][initialPosition.getCol()] = cell;
 
-            Cell cell = new Cell(i, currentPosition, targetPosition);
-            board.getCells()[row][col] = cell;
-
-            Agent agent = new Agent(cell, board);
+            Agent agent = new Agent(cell, board, semaphore);
             agents.add(agent);
         }
+    }
 
-        return agents;
+
+    private void printBoard() {
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            for (int col = 0; col < BOARD_SIZE; col++) {
+                Cell cell = board.getCells()[row][col];
+                System.out.print(cell == null ? "0 " : cell.getId() + " ");
+            }
+            System.out.println();
+        }
+        System.out.println("=====================");
     }
 }
-

@@ -1,15 +1,15 @@
 package com.cytech.multiagent.agent.domain;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class Board {
     private static Board instance;
-    @Getter
-    @Setter
     private Cell[][] cells;
 
-    private Board(int n) {
+    public Board(int n) {
         cells = new Cell[n][n];
     }
 
