@@ -1,113 +1,80 @@
 package com.cytech.multiagent.agent.service;
+
 import com.cytech.multiagent.agent.domain.Agent;
 import com.cytech.multiagent.agent.domain.Board;
 import com.cytech.multiagent.agent.domain.Cell;
 import com.cytech.multiagent.agent.domain.Position;
-import com.cytech.multiagent.commen.Server;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 
 @Service
 public class GameService {
-
-    private static final int BOARD_SIZE = 5;
-    private static final int AGENT_COUNT = 4;
-    private static final int MAX_STEPS = 100;
-    private Server server;
-
+    private static final int BOARD_SIZE = 4;
+    private static final int AGENT_START_PORT = 8081;
     private Board board;
     private List<Agent> agents;
     private Semaphore semaphore;
 
-    /*public void run() {
+    public GameService() {
         board = Board.getInstance(BOARD_SIZE);
+        agents = new ArrayList<>();
         semaphore = new Semaphore(1);
+    }
 
+    public void run() {
         initializeAgents();
-        printBoard();
 
-        for (Agent agent : agents) {
+        agents.forEach(agent -> {
             agent.start();
-        }
+            System.out.println("Agent " + agent.getCell().getId() + " started on port " + agent.getPort());
+        });
 
-        for (Agent agent : agents) {
+        agents.forEach(agent -> {
             try {
                 agent.join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-        }
-
-        System.out.println("游戏结束!");
-        printBoard();
-
-        for (Agent agent : agents) {
-            System.out.println("Agent " + agent.getCell().getId() + " 目标位置：" + agent.getCell().getTargetPosition() + " 移动历史: " + agent.getMoveHistory());
-        }
-    }*/
-    public void run() {
-        ExecutorService executorService = Executors.newFixedThreadPool(5);
-
-        executorService.submit(() -> {
-            server.startServer();
         });
 
-        for (Agent agent : agents) {
-            executorService.submit(agent);
-        }
-
-        executorService.shutdown();
-        while (!executorService.isTerminated()) {
-        }
-
-        System.out.println("Game over!");
+        printBoard();
+        printMoveHistory();
     }
 
     private void initializeAgents() {
-        agents = new ArrayList<>();
+        int boardSize = board.getCells().length;
+        for (int i = 0; i < 4; i++) {
+            Position currentPosition = new Position(i, 0);
+            Position targetPosition = new Position(i, boardSize - 1);
+            Cell cell = new Cell(i, currentPosition, targetPosition);
+            board.getCells()[currentPosition.getRow()][currentPosition.getCol()] = cell;
 
-        Random random = new Random();
-        for (int i = 0; i < AGENT_COUNT; i++) {
-            Position initialPosition;
-            Position targetPosition;
-
-            do {
-                initialPosition = new Position(random.nextInt(BOARD_SIZE), random.nextInt(BOARD_SIZE));
-            } while (board.getCells()[initialPosition.getRow()][initialPosition.getCol()] != null);
-
-            do {
-                targetPosition = new Position(random.nextInt(BOARD_SIZE), random.nextInt(BOARD_SIZE));
-            } while (targetPosition.equals(initialPosition));
-
-            Cell cell = new Cell(i + 1, initialPosition, targetPosition);
-            board.updateCell(initialPosition, targetPosition);
-            board.getCells()[initialPosition.getRow()][initialPosition.getCol()] = cell;
-
-            Agent agent = new Agent(cell, board, semaphore);
+            // 为每个 Agent 分配一个不同的端口
+            int agentPort = AGENT_START_PORT + i;
+            Agent agent = new Agent(cell, board, semaphore, agentPort);
             agents.add(agent);
         }
-        // Start the server
-        this.server = new Server(8888);
-        new Thread(() -> server.startServer()).start();
     }
 
-
     private void printBoard() {
-        for (int row = 0; row < BOARD_SIZE; row++) {
-            for (int col = 0; col < BOARD_SIZE; col++) {
-                Cell cell = board.getCells()[row][col];
-                System.out.print(cell == null ? "0 " : cell.getId() + " ");
+        for (Cell[] row : board.getCells()) {
+            for (Cell cell : row) {
+                if (cell == null) {
+                    System.out.print(" - ");
+                } else {
+                    System.out.print(" " + cell.getId() + " ");
+                }
             }
             System.out.println();
         }
-        System.out.println("=====================");
+    }
+
+    private void printMoveHistory() {
+        for (Agent agent : agents) {
+            System.out.println("Agent " + agent.getCell().getId() + " move history: " + agent.getMoveHistory());
+        }
     }
 }

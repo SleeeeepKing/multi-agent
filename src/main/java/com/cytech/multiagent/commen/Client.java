@@ -11,7 +11,7 @@ public class Client {
 
     public Client(String host, int port) {
         this.host = host;
-        this.port = port;
+        this.port = 5000;
     }
 
     public void sendMessage(String message) {

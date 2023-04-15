@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 import java.io.*;
 import java.net.Socket;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class Client {
     public static void main(String[] args) {
         String hostname = "localhost";

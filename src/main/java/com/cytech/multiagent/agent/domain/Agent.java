@@ -21,13 +21,16 @@ public class Agent extends Thread {
     private Semaphore semaphore;
     private Client client;
     private List<String> moveHistory;
+    private int port;
 
-    public Agent(Cell cell, Board board, Semaphore semaphore) {
+
+    public Agent(Cell cell, Board board, Semaphore semaphore, int port) {
         this.cell = cell;
         this.board = board;
         this.semaphore = semaphore;
-        this.client = new Client("localhost", 8888);
+        this.port = port;
         this.moveHistory = new ArrayList<>();
+        this.client = new Client("localhost", port); // 初始化 Client
     }
 
     public boolean move() {
