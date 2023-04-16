@@ -1,16 +1,12 @@
 package com.cytech.multiagent;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.io.*;
 import java.net.Socket;
 
-public class Client {
+public class ClientApplication {
     public static void main(String[] args) {
         String hostname = "localhost";
-        int port = 8888;
+        int port = 8090;
 
         try (Socket socket = new Socket(hostname, port)) {
 

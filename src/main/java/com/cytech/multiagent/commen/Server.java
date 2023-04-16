@@ -1,46 +1,43 @@
 package com.cytech.multiagent.commen;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.ArrayList;
+import java.util.List;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class Server {
     private int port;
-    private ExecutorService executorService;
+    private List<ClientHandler> clients;
 
     public Server(int port) {
         this.port = port;
-        this.executorService = Executors.newCachedThreadPool();
+        this.clients = new ArrayList<>();
     }
 
     public void startServer() {
-        new Thread(() -> {
-            try (ServerSocket serverSocket = new ServerSocket(port)) {
-                System.out.println("Server started on port " + port);
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            System.out.println("Server is listening on port " + port);
 
-                while (true) {
-                    Socket clientSocket = serverSocket.accept();
-                    System.out.println("Client connected: " + clientSocket.getInetAddress());
+            while (true) {
+                Socket socket = serverSocket.accept();
+                System.out.println("New client connected");
 
-                    // Handle the client communication in a separate thread
-                    executorService.submit(() -> handleClient(clientSocket));
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
+                ClientHandler clientHandler = new ClientHandler(socket, this);
+                clients.add(clientHandler);
+                new Thread(clientHandler).start();
             }
-        }).start();
+        } catch (IOException ex) {
+            System.out.println("Server exception: " + ex.getMessage());
+            ex.printStackTrace();
+        }
     }
 
-    private void handleClient(Socket clientSocket) {
-        // Implement your logic for handling client communication here
+    public void broadcast(String message, ClientHandler sender) {
+        for (ClientHandler client : clients) {
+            if (client != sender) {
+                client.sendMessage(message);
+            }
+        }
     }
 }

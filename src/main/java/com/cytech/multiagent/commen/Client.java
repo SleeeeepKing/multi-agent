@@ -1,36 +1,35 @@
 package com.cytech.multiagent.commen;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.Socket;
 
 public class Client {
-    private String host;
-    private int port;
     private Socket socket;
-    private PrintWriter out;
+    private PrintWriter writer;
+    private BufferedReader reader;
 
-    public Client(String host, int port) {
-        this.host = host;
-        this.port = 5000;
+    public Client(String hostname, int port) throws IOException {
+        this.socket = new Socket(hostname, port);
+        this.writer = new PrintWriter(socket.getOutputStream(), true);
+        this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     }
 
     public void sendMessage(String message) {
-        try {
-            socket = new Socket(host, port);
-            out = new PrintWriter(socket.getOutputStream(), true);
-            out.println(message);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        writer.println(message);
+    }
+
+    public String readMessage() throws IOException {
+        return reader.readLine();
     }
 
     public void closeConnection() {
         try {
-            out.close();
             socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 }
-

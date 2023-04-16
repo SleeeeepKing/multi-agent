@@ -4,7 +4,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class Server {
+public class ServerApplication {
     public static void main(String[] args) {
         int port = 8090;
         try (ServerSocket serverSocket = new ServerSocket(port)) {

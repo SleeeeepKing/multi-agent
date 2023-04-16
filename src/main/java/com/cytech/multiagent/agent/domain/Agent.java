@@ -1,15 +1,17 @@
 package com.cytech.multiagent.agent.domain;
 
-import com.cytech.multiagent.commen.Client;
 import com.cytech.multiagent.agent.domain.enums.Direction;
+import com.cytech.multiagent.commen.Client;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.CountDownLatch;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -22,6 +24,7 @@ public class Agent extends Thread {
     private Client client;
     private List<String> moveHistory;
     private int port;
+    private CountDownLatch agentsFinished;
 
 
     public Agent(Cell cell, Board board, Semaphore semaphore, int port) {
@@ -30,7 +33,12 @@ public class Agent extends Thread {
         this.semaphore = semaphore;
         this.port = port;
         this.moveHistory = new ArrayList<>();
-        this.client = new Client("localhost", port); // 初始化 Client
+        try {
+            this.client = new Client("localhost", port);
+        } catch (IOException e) {
+            System.out.println("Error connecting to server: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     public boolean move() {
@@ -52,7 +60,7 @@ public class Agent extends Thread {
                     board.updateCell(currentPosition, newPosition);
                     cell.setCurrentPosition(newPosition);
                     moveHistory.add(String.valueOf(newPosition));
-
+                    client.sendMessage("Agent " + cell.getId() + " moved to " + newPosition);
                     semaphore.release(); // 释放许可
                     return true;
                 }
@@ -175,6 +183,16 @@ public boolean move() {
                 }
             }
         }*/
+
+    public String readMessage() {
+        try {
+            return client.readMessage();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     @Override
     public void run() {
         while (!move()) {
@@ -188,6 +206,7 @@ public boolean move() {
         String message = "Agent " + cell.getId() + " has reached its target position.";
         client.sendMessage(message);
         client.closeConnection();
+        agentsFinished.countDown(); // 表示这个代理已经完成
     }
 
 }

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.CountDownLatch;
 
 @Service
 public class GameService {
@@ -17,11 +18,13 @@ public class GameService {
     private Board board;
     private List<Agent> agents;
     private Semaphore semaphore;
+    private CountDownLatch agentsFinished;
 
     public GameService() {
         board = Board.getInstance(BOARD_SIZE);
         agents = new ArrayList<>();
         semaphore = new Semaphore(1);
+        agentsFinished = new CountDownLatch(4);
     }
 
     public void run() {
@@ -32,13 +35,11 @@ public class GameService {
             System.out.println("Agent " + agent.getCell().getId() + " started on port " + agent.getPort());
         });
 
-        agents.forEach(agent -> {
-            try {
-                agent.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
+        try {
+            agentsFinished.await(); // 等待所有代理线程完成
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         printBoard();
         printMoveHistory();
@@ -53,8 +54,9 @@ public class GameService {
             board.getCells()[currentPosition.getRow()][currentPosition.getCol()] = cell;
 
             // 为每个 Agent 分配一个不同的端口
-            int agentPort = AGENT_START_PORT + i;
-            Agent agent = new Agent(cell, board, semaphore, agentPort);
+            int serverPort = AGENT_START_PORT + i;
+            Agent agent = new Agent(cell, board, semaphore, serverPort);
+            agent.setAgentsFinished(agentsFinished); // 将 CountDownLatch 传递给每个代理
             agents.add(agent);
         }
     }
