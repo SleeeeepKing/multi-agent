@@ -1,12 +1,11 @@
 package com.cytech.multiagent.commen;
 
-import com.cytech.multiagent.commen.Server;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketException;
 
 public class ClientHandler implements Runnable {
     private Socket socket;
@@ -31,9 +30,17 @@ public class ClientHandler implements Runnable {
                 System.out.println("Received: " + message);
                 server.broadcast(message, this);
             }
+        } catch (SocketException e) {
+            System.out.println("Client disconnected: " + e.getMessage());
         } catch (IOException ex) {
             System.out.println("Client exception: " + ex.getMessage());
             ex.printStackTrace();
+        } finally {
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

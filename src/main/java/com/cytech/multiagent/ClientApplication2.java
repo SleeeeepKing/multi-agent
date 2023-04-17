@@ -5,13 +5,13 @@ import com.cytech.multiagent.agent.domain.Board;
 import com.cytech.multiagent.agent.domain.Cell;
 import com.cytech.multiagent.agent.domain.Position;
 
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 
-public class ClientApplication {
+public class ClientApplication2 {
     public static void main(String[] args) {
         // 初始化代理列表
         List<Agent> agents = new ArrayList<>();
@@ -27,44 +27,29 @@ public class ClientApplication {
             int col = random.nextInt(boardSize);
             positions.add(new Position(row, col));
         }*/
-        positions.add(new Position(0, 1));
+        positions.add(new Position(0, 2));
 
-        int agentId = 1;
+        int agentId = 2;
         for (Position position : positions) {
             // 创建一个目标位置，这里我们只设置为右下角
-            Position targetPosition = new Position(0, 0);
+            Position targetPosition = new Position(0, 1);
             Cell cell = new Cell(agentId, position, targetPosition);
             board.getCells()[position.getRow()][position.getCol()] = cell;
 
             Agent agent = new Agent(cell, board, new Semaphore(1), serverPort);
             agents.add(agent);
-//            agentId++;
+            agentId++;
         }
 
         // 启动代理并等待它们完成
-        /*agents.forEach(Agent::start);
+        agents.forEach(Agent::start);
         agents.forEach(agent -> {
             try {
                 agent.join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-        });*/
-        // 创建一个线程池来管理代理线程
-        ExecutorService executorService = Executors.newFixedThreadPool(agents.size());
-
-        // 提交代理任务到线程池
-        for (Agent agent : agents) {
-            executorService.submit(agent::start);
-        }
-
-        // 关闭线程池并等待所有任务完成
-        executorService.shutdown();
-        try {
-            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        });
     }
 }
 

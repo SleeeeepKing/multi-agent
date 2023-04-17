@@ -25,7 +25,6 @@ public class Agent extends Thread {
     private Cell cell;
     private Board board;
     private Semaphore semaphore;
-    private Client client;
     private List<String> moveHistory;
     private int agentPort;
     private CountDownLatch agentsFinished;
@@ -38,17 +37,13 @@ public class Agent extends Thread {
         this.semaphore = semaphore;
         this.agentPort = agentPort;
         this.moveHistory = new ArrayList<>();
-        try {
-            this.client = new Client("localhost", agentPort);
-        } catch (IOException e) {
-            System.out.println("Error connecting to server: " + e.getMessage());
-            e.printStackTrace();
-        }
     }
 
     @Override
     public void run() {
-        try (Socket socket = new Socket("localhost", SERVER_PORT)) {
+        Socket socket = null;
+        try {
+            socket = new Socket("localhost", SERVER_PORT);
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
@@ -77,9 +72,16 @@ public class Agent extends Thread {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            if (socket != null) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            agentsFinished.countDown(); // 表示这个代理已经完成
         }
-
-        agentsFinished.countDown(); // 表示这个代理已经完成
     }
 
     public boolean move() {
@@ -101,7 +103,7 @@ public class Agent extends Thread {
                     board.updateCell(currentPosition, newPosition);
                     cell.setCurrentPosition(newPosition);
                     moveHistory.add(String.valueOf(newPosition));
-                    client.sendMessage("Agent " + cell.getId() + " moved to " + newPosition);
+//                    client.sendMessage("Agent " + cell.getId() + " moved to " + newPosition);
                     semaphore.release(); // 释放许可
                     return true;
                 }
