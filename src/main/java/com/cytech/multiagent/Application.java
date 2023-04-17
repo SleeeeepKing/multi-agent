@@ -21,12 +21,13 @@ public class Application {
         Condition condition4 = lock.newCondition();
 
         Map map = Map.getInstance();
+        Message message = Message.getInstance();
 
         // 创建并启动四个代理线程
-        Agent agent1 = new Agent(1, 0, 24, map, lock, condition1, condition2, condition3, condition4);
-        Agent agent2 = new Agent(2, 1, 23, map, lock, condition1, condition2, condition3, condition4);
-        Agent agent3 = new Agent(3, 2, 22, map, lock, condition1, condition2, condition3, condition4);
-        Agent agent4 = new Agent(4, 3, 21, map, lock, condition1, condition2, condition3, condition4);
+        Agent agent1 = new Agent(1, 0, 24, map, message, lock, condition1, condition2, condition3, condition4);
+        Agent agent2 = new Agent(2, 1, 23, map, message, lock, condition1, condition2, condition3, condition4);
+        Agent agent3 = new Agent(3, 2, 22, map, message, lock, condition1, condition2, condition3, condition4);
+        Agent agent4 = new Agent(4, 3, 21, map, message, lock, condition1, condition2, condition3, condition4);
 
         Thread thread1 = new Thread(agent1, Agent.FLAG_THREAD_1);
         Thread thread2 = new Thread(agent2, Agent.FLAG_THREAD_2);
