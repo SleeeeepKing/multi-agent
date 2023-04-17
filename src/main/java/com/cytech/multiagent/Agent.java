@@ -7,21 +7,35 @@ import lombok.NoArgsConstructor;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
-@EqualsAndHashCode(callSuper = true)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Agent extends Thread {
+public class Agent implements Runnable {
+    public static final String FLAG_THREAD_1 = "Agent1";
+    public static final String FLAG_THREAD_2 = "Agent2";
+    public static final String FLAG_THREAD_3 = "Agent3";
+    public static final String FLAG_THREAD_4 = "Agent4";
     private int agentId;
     private int currentPosition;
     private int targetPosition;
     private int nextPosition;
     private Map map;
+    private ReentrantLock lock;
+    private Condition condition1;
+    private Condition condition2;
+    private Condition condition3;
+    private Condition condition4;
 
 
-
-    public Agent(int agentId, int currentPosition, int targetPosition, Map map) {
+    public Agent(int agentId, int currentPosition, int targetPosition, Map map, ReentrantLock lock, Condition condition1, Condition condition2, Condition condition3, Condition condition4) {
+        this.lock = lock;
+        this.condition1 = condition1;
+        this.condition2 = condition2;
+        this.condition3 = condition3;
+        this.condition4 = condition4;
         this.agentId = agentId;
         this.currentPosition = currentPosition;
         this.targetPosition = targetPosition;
@@ -31,30 +45,45 @@ public class Agent extends Thread {
     // 线程的run方法，执行代理逻辑
     @Override
     public void run() {
-        // 在这里实现代理的逻辑，例如移动和与其他代理交互
-        if (agentId == 1) {
-            // Agent1向其他Agent发送消息
-            sendRequest(2, "Hello, Agent2!");
-            sendRequest(3, "Hello, Agent3!");
-            sendRequest(4, "Hello, Agent4!");
-        } else {
-            // 其他Agent收到Agent1的消息后，回复给Agent1
-            String message = receiveResponse();
-            if (message != null) {
-                System.out.println("Agent" + agentId + " received: " + message);
-                sendRequest(1, "Hello, Agent1! This is Agent" + agentId + ".");
+        while (true) {
+            try {
+                lock.lock();
+                System.out.println(Thread.currentThread().getName() + "开始行动");
+                Thread.sleep(1000);
+                // todo 在这里实现代理的逻辑，例如移动和与其他代理交互
+
+                // 该回合结束，唤醒下一个线程
+                switch (Thread.currentThread().getName()) {
+                    case FLAG_THREAD_1 -> {
+                        //唤醒线程2 自身线程挂起阻塞
+                        condition2.signal();
+                        condition1.await();
+                    }
+                    case FLAG_THREAD_2 -> {
+                        //唤醒线程3 自身线程挂起阻塞
+                        condition3.signal();
+                        condition2.await();
+                    }
+                    case FLAG_THREAD_3 -> {
+                        //唤醒线程4 自身线程挂起阻塞
+                        condition4.signal();
+                        condition3.await();
+                    }
+                    case FLAG_THREAD_4 -> {
+                        //唤醒线程1 自身线程挂起阻塞
+                        condition1.signal();
+                        condition4.await();
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                return;
+            } finally {
+                lock.unlock();
             }
         }
 
-        if (agentId == 1) {
-            // Agent1接收其他Agent的回复
-            for (int i = 0; i < 3; i++) {
-                String reply = receiveResponse();
-                if (reply != null) {
-                    System.out.println("Agent1 received: " + reply);
-                }
-            }
-        }
+
     }
 
     // 示例方法：获取地图信息
@@ -72,15 +101,17 @@ public class Agent extends Thread {
 
     }
 
-    public void receiveRequest(){}
+    public void receiveRequest() {
+    }
 
     public String receiveResponse() {
         return null;
     }
 
-    public void processResponse(){}
+    public void processResponse() {
+    }
 
-    public void move(){
+    public void move() {
 
     }
 }
