@@ -31,27 +31,34 @@ public class Agent extends Thread {
     private static final int SERVER_PORT = 8090;
     private Client client;
     private Socket socket;
+    private BufferedReader reader;
+    private PrintWriter writer;
 
-
-    public Agent(Cell cell, Board board, Semaphore semaphore, Socket socket) {
+    public Agent(Cell cell, Board board, Semaphore semaphore, Socket socket, Client client) {
         this.cell = cell;
         this.board = board;
         this.semaphore = semaphore;
         this.socket = socket;
+        this.agentsFinished = new CountDownLatch(2);
+        this.client = client;
     }
 
     @Override
     public void run() {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
-
+        try {
+            this.writer = new PrintWriter(socket.getOutputStream(), true);
+            this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             // 向服务器发送初始信息，例如代理 ID
-            writer.println("Agent " + cell.getId() + " is connected");
+//            writer.println("Agent " + cell.getId() + " is connected");
+            writer.println("Init Agent " + cell.getId() + " is connected"+ ", Position on " + cell.getCurrentPosition().getRow() + " " + cell.getCurrentPosition().getCol());
+
 
             // 主通信循环
             while (!isInterrupted()) {
+                move();
                 // 从服务器读取消息
                 String message = reader.readLine();
+                System.out.println("Received: " + message);
                 if (message == null) {
                     // 如果服务器关闭连接，退出循环
                     break;
@@ -63,11 +70,12 @@ public class Agent extends Thread {
 
                 // 根据收到的消息执行操作
                 if (senderAgentId != cell.getId()) { // 只对其他代理的消息进行操作
+                    System.out.println("Received: " + message);
                     if (message.startsWith("MOVE")) {
-                        // ... 在此处执行相应的操作 ...
+                        // todo 执行移动的代码
                         System.out.println("Received: " + message);
                     } else if (message.startsWith("EXIT")) {
-                        // ... 在此处执行相应的操作 ...
+                        // todo 执行移动的代码
                         System.out.println("Received: " + message);
                     }
                 }
@@ -92,6 +100,7 @@ public class Agent extends Thread {
 
 
     public boolean move() {
+        System.out.println("Agent " + cell.getId() + " is moving");
         Position currentPosition = cell.getCurrentPosition();
         Position targetPosition = cell.getTargetPosition();
 
@@ -104,13 +113,19 @@ public class Agent extends Thread {
             Position newPosition = getNewPosition(currentPosition, direction);
 
             try {
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 semaphore.acquire(); // 获取许可
 
                 if (canMoveTo(newPosition)) {
+                    System.out.println("Agent " + cell.getId() + " can move");
                     board.updateCell(currentPosition, newPosition);
                     cell.setCurrentPosition(newPosition);
-                    moveHistory.add(String.valueOf(newPosition));
-//                    client.sendMessage("Agent " + cell.getId() + " moved to " + newPosition);
+//                    moveHistory.add(String.valueOf(newPosition));
+                    sendMessageToServer("Agent " + cell.getId() + " moved to " + newPosition); // 添加这一行
                     semaphore.release(); // 释放许可
                     return true;
                 }
@@ -169,8 +184,25 @@ public class Agent extends Thread {
             return false;
         }
 
-        return board.getCells()[row][col] == null;
+        // 发送请求到服务器，并等待响应
+        System.out.println("Sending request to server"+ " agent " + cell.getId() + " from "+ cell.getCurrentPosition()+ " to" + newPosition);
+        sendMessageToServer("REQUEST_MOVE " + cell.getId() + " " + newPosition.getRow() + " " + newPosition.getCol());
+
+        String response = readMessageFromServer();
+        System.out.println("Received response from server: " + response);
+
+        return "ALLOW_MOVE".equals(response);
     }
+
+    private String readMessageFromServer() {
+        try {
+            return this.reader.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 }
 
 
