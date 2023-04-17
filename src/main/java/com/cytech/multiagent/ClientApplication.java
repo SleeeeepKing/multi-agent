@@ -21,12 +21,6 @@ public class ClientApplication {
 
         // 生成不重复的随机初始位置
         Set<Position> positions = new HashSet<>();
-        /*Random random = new Random();
-        while (positions.size() < 4) {
-            int row = random.nextInt(boardSize);
-            int col = random.nextInt(boardSize);
-            positions.add(new Position(row, col));
-        }*/
         positions.add(new Position(0, 1));
 
         int agentId = 1;
@@ -38,18 +32,7 @@ public class ClientApplication {
 
             Agent agent = new Agent(cell, board, new Semaphore(1), serverPort);
             agents.add(agent);
-//            agentId++;
         }
-
-        // 启动代理并等待它们完成
-        /*agents.forEach(Agent::start);
-        agents.forEach(agent -> {
-            try {
-                agent.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });*/
         // 创建一个线程池来管理代理线程
         ExecutorService executorService = Executors.newFixedThreadPool(agents.size());
 

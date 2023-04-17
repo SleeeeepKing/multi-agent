@@ -9,7 +9,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 public class ClientApplication3 {
     public static void main(String[] args) {
@@ -21,14 +24,7 @@ public class ClientApplication3 {
 
         // 生成不重复的随机初始位置
         Set<Position> positions = new HashSet<>();
-        /*Random random = new Random();
-        while (positions.size() < 4) {
-            int row = random.nextInt(boardSize);
-            int col = random.nextInt(boardSize);
-            positions.add(new Position(row, col));
-        }*/
         positions.add(new Position(0, 1));
-        positions.add(new Position(0, 2));
 
         int agentId = 3;
         for (Position position : positions) {
@@ -39,18 +35,22 @@ public class ClientApplication3 {
 
             Agent agent = new Agent(cell, board, new Semaphore(1), serverPort);
             agents.add(agent);
-            agentId++;
+        }
+        // 创建一个线程池来管理代理线程
+        ExecutorService executorService = Executors.newFixedThreadPool(agents.size());
+
+        // 提交代理任务到线程池
+        for (Agent agent : agents) {
+            executorService.submit(agent::start);
         }
 
-        // 启动代理并等待它们完成
-        agents.forEach(Agent::start);
-        agents.forEach(agent -> {
-            try {
-                agent.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
+        // 关闭线程池并等待所有任务完成
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }
 
