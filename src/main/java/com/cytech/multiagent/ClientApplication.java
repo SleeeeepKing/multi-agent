@@ -1,37 +1,53 @@
 package com.cytech.multiagent;
 
-import java.io.*;
-import java.net.Socket;
+import com.cytech.multiagent.agent.domain.Agent;
+import com.cytech.multiagent.agent.domain.Board;
+import com.cytech.multiagent.agent.domain.Cell;
+import com.cytech.multiagent.agent.domain.Position;
+
+import java.util.*;
+import java.util.concurrent.Semaphore;
 
 public class ClientApplication {
     public static void main(String[] args) {
-        String hostname = "localhost";
-        int port = 8090;
+        // 初始化代理列表
+        List<Agent> agents = new ArrayList<>();
+        int boardSize = 5;
+        Board board = Board.getInstance(boardSize);
+        int serverPort = 8090;
 
-        try (Socket socket = new Socket(hostname, port)) {
+        // 生成不重复的随机初始位置
+        Set<Position> positions = new HashSet<>();
+        /*Random random = new Random();
+        while (positions.size() < 4) {
+            int row = random.nextInt(boardSize);
+            int col = random.nextInt(boardSize);
+            positions.add(new Position(row, col));
+        }*/
+        positions.add(new Position(0, 1));
+        positions.add(new Position(0, 2));
 
-            OutputStream output = socket.getOutputStream();
-            PrintWriter writer = new PrintWriter(output, true);
+        int agentId = 0;
+        for (Position position : positions) {
+            // 创建一个目标位置，这里我们只设置为右下角
+            Position targetPosition = new Position(0, 0);
+            Cell cell = new Cell(agentId, position, targetPosition);
+            board.getCells()[position.getRow()][position.getCol()] = cell;
 
-            Console console = System.console();
-            while (true) {
-                String message = console.readLine("Enter message: ");
-                writer.println(message);
-
-                InputStream input = socket.getInputStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-
-                String response = reader.readLine();
-                System.out.println("Server response: " + response);
-
-                if (message.equalsIgnoreCase("exit")) {
-                    break;
-                }
-            }
-        } catch (IOException ex) {
-            System.out.println("Client exception: " + ex.getMessage());
-            ex.printStackTrace();
+            Agent agent = new Agent(cell, board, new Semaphore(1), serverPort);
+            agents.add(agent);
+            agentId++;
         }
+
+        // 启动代理并等待它们完成
+        agents.forEach(Agent::start);
+        agents.forEach(agent -> {
+            try {
+                agent.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
     }
 }
 

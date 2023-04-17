@@ -7,7 +7,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
@@ -23,22 +27,59 @@ public class Agent extends Thread {
     private Semaphore semaphore;
     private Client client;
     private List<String> moveHistory;
-    private int port;
+    private int agentPort;
     private CountDownLatch agentsFinished;
+    private static final int SERVER_PORT = 8090;
 
 
-    public Agent(Cell cell, Board board, Semaphore semaphore, int port) {
+    public Agent(Cell cell, Board board, Semaphore semaphore, int agentPort) {
         this.cell = cell;
         this.board = board;
         this.semaphore = semaphore;
-        this.port = port;
+        this.agentPort = agentPort;
         this.moveHistory = new ArrayList<>();
         try {
-            this.client = new Client("localhost", port);
+            this.client = new Client("localhost", agentPort);
         } catch (IOException e) {
             System.out.println("Error connecting to server: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void run() {
+        try (Socket socket = new Socket("localhost", SERVER_PORT)) {
+            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+            // 向服务器发送初始信息，例如代理 ID
+            writer.println("Agent " + cell.getId() + " is connected");
+
+            // 主通信循环
+            while (!isInterrupted()) {
+                // 从服务器读取消息
+                String message = reader.readLine();
+                if (message == null) {
+                    // 如果服务器关闭连接，退出循环
+                    break;
+                }
+
+                // 根据收到的消息执行操作
+                if (message.startsWith("MOVE")) {
+                    // 解析消息并执行相应操作，例如更新代理的位置
+                    // 您可能需要根据您的项目需求自定义消息格式和解析逻辑
+                    move(); // 示例移动方法
+                    writer.println("Agent " + cell.getId() + " moved");
+                } else if (message.startsWith("EXIT")) {
+                    // 如果收到退出指令，退出循环
+                    break;
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        agentsFinished.countDown(); // 表示这个代理已经完成
     }
 
     public boolean move() {
@@ -74,41 +115,6 @@ public class Agent extends Thread {
 
         return false;
     }
-    /*
-public boolean move() {
-    Position currentPosition = cell.getCurrentPosition();
-    Position targetPosition = cell.getTargetPosition();
-
-    if (currentPosition.equals(targetPosition)) {
-        return false;
-    }
-
-    Direction direction = getDirection(currentPosition, targetPosition);
-    if (direction != null) {
-        Position newPosition = getNewPosition(currentPosition, direction);
-
-        try {
-            semaphore.acquire(); // 获取许可
-
-            if (canMoveTo(newPosition)) {
-                board.updateCell(currentPosition, newPosition);
-                cell.setCurrentPosition(newPosition);
-                moveHistory.add(String.valueOf(newPosition));
-
-                semaphore.release(); // 释放许可
-                return true;
-            }
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } finally {
-            semaphore.release(); // 确保许可被释放
-        }
-    }
-
-    return false;
-}
-*/
 
 
     public List<String> getMoveHistory() {
@@ -132,22 +138,6 @@ public boolean move() {
 
         return possibleDirections;
     }
-/*
-
-    private Direction getDirection(Position currentPosition, Position targetPosition) {
-        if (targetPosition.getRow() < currentPosition.getRow()) {
-            return Direction.UP;
-        } else if (targetPosition.getRow() > currentPosition.getRow()) {
-            return Direction.DOWN;
-        } else if (targetPosition.getCol() < currentPosition.getCol()) {
-            return Direction.LEFT;
-        } else if (targetPosition.getCol() > currentPosition.getCol()) {
-            return Direction.RIGHT;
-        } else {
-            return null;
-        }
-    }
-*/
 
 
     private Position getNewPosition(Position currentPosition, Direction direction) {
@@ -172,43 +162,6 @@ public boolean move() {
 
         return board.getCells()[row][col] == null;
     }
-
-    /*    @Override
-        public void run() {
-            while (!move()) {
-                try {
-                    Thread.sleep(100); // 每次尝试移动前，线程等待一段时间
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }*/
-
-    public String readMessage() {
-        try {
-            return client.readMessage();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    @Override
-    public void run() {
-        while (!move()) {
-            try {
-                Thread.sleep(100); // 每次尝试移动前，线程等待一段时间
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-
-        String message = "Agent " + cell.getId() + " has reached its target position.";
-        client.sendMessage(message);
-        client.closeConnection();
-        agentsFinished.countDown(); // 表示这个代理已经完成
-    }
-
 }
 
 

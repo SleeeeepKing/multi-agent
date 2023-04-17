@@ -32,7 +32,7 @@ public class GameService {
 
         agents.forEach(agent -> {
             agent.start();
-            System.out.println("Agent " + agent.getCell().getId() + " started on port " + agent.getPort());
+            System.out.println("Agent " + agent.getCell().getId() + " started on port " + agent.getAgentPort());
         });
 
         try {
