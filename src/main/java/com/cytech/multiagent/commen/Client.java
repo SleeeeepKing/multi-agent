@@ -17,8 +17,12 @@ public class Client {
         this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     }
 
+
     public void sendMessage(String message) {
         writer.println(message);
+    }
+    public Socket getSocket() {
+        return socket;
     }
 
     public String readMessage() throws IOException {

@@ -4,7 +4,10 @@ import com.cytech.multiagent.agent.domain.Agent;
 import com.cytech.multiagent.agent.domain.Board;
 import com.cytech.multiagent.agent.domain.Cell;
 import com.cytech.multiagent.agent.domain.Position;
+import com.cytech.multiagent.commen.Client;
 
+import java.io.IOException;
+import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,7 +33,15 @@ public class ClientApplication {
             Cell cell = new Cell(agentId, position, targetPosition);
             board.getCells()[position.getRow()][position.getCol()] = cell;
 
-            Agent agent = new Agent(cell, board, new Semaphore(1), serverPort);
+            Socket socket = null;
+            try {
+                socket = new Client("localhost", serverPort).getSocket();
+            } catch (IOException e) {
+                System.out.println("Error connecting to server: " + e.getMessage());
+                e.printStackTrace();
+            }
+
+            Agent agent = new Agent(cell, board, new Semaphore(1), socket);
             agents.add(agent);
         }
         // 创建一个线程池来管理代理线程

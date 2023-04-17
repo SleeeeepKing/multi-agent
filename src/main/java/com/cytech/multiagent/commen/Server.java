@@ -1,6 +1,7 @@
 package com.cytech.multiagent.commen;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ import java.util.List;
 public class Server {
     private int port;
     private List<ClientHandler> clients;
+    private int nextAgentId = 1; // 添加代理ID字段
 
     public Server(int port) {
         this.port = port;
@@ -23,7 +25,8 @@ public class Server {
                 Socket socket = serverSocket.accept();
                 System.out.println("New client connected");
 
-                ClientHandler clientHandler = new ClientHandler(socket, this);
+                int agentId = nextAgentId++; // 为新连接的客户端分配代理ID，并递增nextAgentId
+                ClientHandler clientHandler = new ClientHandler(socket, this, agentId);
                 clients.add(clientHandler);
                 new Thread(clientHandler).start();
             }
@@ -40,4 +43,5 @@ public class Server {
             }
         }
     }
+
 }

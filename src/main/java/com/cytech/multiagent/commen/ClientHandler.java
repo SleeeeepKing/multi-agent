@@ -8,13 +8,15 @@ import java.net.Socket;
 import java.net.SocketException;
 
 public class ClientHandler implements Runnable {
+    private int agentId; // 添加代理ID字段
     private Socket socket;
     private Server server;
     private PrintWriter writer;
 
-    public ClientHandler(Socket socket, Server server) {
+    public ClientHandler(Socket socket, Server server, int agentId) {
         this.socket = socket;
         this.server = server;
+        this.agentId = agentId; // 将代理ID设置为构造函数参数
     }
 
     @Override

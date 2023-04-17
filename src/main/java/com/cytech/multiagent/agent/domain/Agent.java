@@ -29,23 +29,21 @@ public class Agent extends Thread {
     private int agentPort;
     private CountDownLatch agentsFinished;
     private static final int SERVER_PORT = 8090;
+    private Client client;
+    private Socket socket;
 
 
-    public Agent(Cell cell, Board board, Semaphore semaphore, int agentPort) {
+    public Agent(Cell cell, Board board, Semaphore semaphore, Socket socket) {
         this.cell = cell;
         this.board = board;
         this.semaphore = semaphore;
-        this.agentPort = agentPort;
-        this.moveHistory = new ArrayList<>();
+        this.socket = socket;
     }
 
     @Override
     public void run() {
-        Socket socket = null;
-        try {
-            socket = new Socket("localhost", SERVER_PORT);
-            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
 
             // 向服务器发送初始信息，例如代理 ID
             writer.println("Agent " + cell.getId() + " is connected");
@@ -59,15 +57,19 @@ public class Agent extends Thread {
                     break;
                 }
 
+                // 解析发送者的代理ID
+                String[] parts = message.split(" ");
+                int senderAgentId = Integer.parseInt(parts[1]);
+
                 // 根据收到的消息执行操作
-                if (message.startsWith("MOVE")) {
-                    // 解析消息并执行相应操作，例如更新代理的位置
-                    // 您可能需要根据您的项目需求自定义消息格式和解析逻辑
-                    move(); // 示例移动方法
-                    writer.println("Agent " + cell.getId() + " moved");
-                } else if (message.startsWith("EXIT")) {
-                    // 如果收到退出指令，退出循环
-                    break;
+                if (senderAgentId != cell.getId()) { // 只对其他代理的消息进行操作
+                    if (message.startsWith("MOVE")) {
+                        // ... 在此处执行相应的操作 ...
+                        System.out.println("Received: " + message);
+                    } else if (message.startsWith("EXIT")) {
+                        // ... 在此处执行相应的操作 ...
+                        System.out.println("Received: " + message);
+                    }
                 }
             }
         } catch (IOException e) {
@@ -83,6 +85,11 @@ public class Agent extends Thread {
             agentsFinished.countDown(); // 表示这个代理已经完成
         }
     }
+
+    public void sendMessageToServer(String message) {
+        client.sendMessage(message);
+    }
+
 
     public boolean move() {
         Position currentPosition = cell.getCurrentPosition();
