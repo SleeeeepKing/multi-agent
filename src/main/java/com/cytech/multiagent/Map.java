@@ -1,4 +1,4 @@
-package com.cytech.multiagent.agent.domain;
+package com.cytech.multiagent;
 
 public class Map {
     // 使用一个静态变量来保存唯一实例

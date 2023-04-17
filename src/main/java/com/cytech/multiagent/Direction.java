@@ -1,4 +1,4 @@
-package com.cytech.multiagent.agent.domain.enums;
+package com.cytech.multiagent;
 
 public enum Direction {
     UP, DOWN, LEFT, RIGHT;

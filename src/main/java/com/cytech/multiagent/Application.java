@@ -1,7 +1,5 @@
 package com.cytech.multiagent;
 
-import com.cytech.multiagent.agent.domain.Agent;
-import com.cytech.multiagent.agent.domain.Map;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
@@ -15,10 +13,10 @@ public class Application {
         Map map = Map.getInstance();
 
         // 创建并启动四个代理线程
-        Agent agent1 = new Agent(1, 1, 0, 0, map);
-        Agent agent2 = new Agent(2, 3, 1, 0, map);
-        Agent agent3 = new Agent(3, 5, 5, 0, map);
-        Agent agent4 = new Agent(4, 6, 6, 0, map);
+        Agent agent1 = new Agent(1, 0, 24, map);
+        Agent agent2 = new Agent(2, 1, 23, map);
+        Agent agent3 = new Agent(3, 2, 22, map);
+        Agent agent4 = new Agent(4, 3, 21, map);
 
         agent1.start();
         agent2.start();
