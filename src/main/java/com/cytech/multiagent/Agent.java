@@ -28,13 +28,13 @@ public class Agent implements Runnable {
     private Condition condition2;
     private Condition condition3;
     private Condition condition4;
-    private boolean isMainThread;
     private boolean initFlag;
     private int[] requestAgents;
     private Map<Integer, String> agentResponse;
+    private AgentStatus agentStatus;
 
 
-    public Agent(int agentId, int currentPosition, int targetPosition, GameMap map, Message message, ReentrantLock lock, Condition condition1, Condition condition2, Condition condition3, Condition condition4) {
+    public Agent(int agentId, int currentPosition, int targetPosition, GameMap map, Message message, AgentStatus agentStatus, ReentrantLock lock, Condition condition1, Condition condition2, Condition condition3, Condition condition4) {
         this.lock = lock;
         this.condition1 = condition1;
         this.condition2 = condition2;
@@ -45,7 +45,7 @@ public class Agent implements Runnable {
         this.targetPosition = targetPosition;
         this.map = map;
         this.message = message;
-        this.isMainThread = false;
+        this.agentStatus = agentStatus;
         this.initFlag = true;
         this.requestAgents = new int[]{0, 0, 0, 0};
         this.agentResponse = Map.of(1, "ALLOW_MOVE", 2, "ALLOW_MOVE", 3, "ALLOW_MOVE", 4, "ALLOW_MOVE");
@@ -104,25 +104,21 @@ public class Agent implements Runnable {
         switch (Thread.currentThread().getName()) {
             case FLAG_THREAD_1 -> {
                 //唤醒线程2 自身线程挂起阻塞
-                isMainThread = false;
                 condition2.signal();
                 condition1.await();
             }
             case FLAG_THREAD_2 -> {
                 //唤醒线程3 自身线程挂起阻塞
-                isMainThread = false;
                 condition3.signal();
                 condition2.await();
             }
             case FLAG_THREAD_3 -> {
                 //唤醒线程4 自身线程挂起阻塞
-                isMainThread = false;
                 condition4.signal();
                 condition3.await();
             }
             case FLAG_THREAD_4 -> {
                 //唤醒线程1 自身线程挂起阻塞
-                isMainThread = false;
                 condition1.signal();
                 condition4.await();
             }
@@ -137,11 +133,13 @@ public class Agent implements Runnable {
                 lock.lock();
                 Thread.sleep(1000);
                 if (!initFlag) {
-                    System.out.println("----------------------------------------");
                     if (currentPosition == targetPosition) {
-                        System.out.println("Agent" + Thread.currentThread().getName() + "已经到达目标位置");
-                        sequenceRun();
+                        if (agentStatus.getAgentStatus(agentId) == 1) {
+                            System.out.println("Agent" + Thread.currentThread().getName() + "已经到达目标位置，等待其他线程到达目标位置");
+                            sequenceRun();
+                        }
                     } else {
+                        System.out.println("----------------------------------------");
                         System.out.println("Agent" + Thread.currentThread().getName() + "开始行动");
                         receiveResponse();
                         receiveRequest();
@@ -153,20 +151,9 @@ public class Agent implements Runnable {
                     System.out.println("Agent" + Thread.currentThread().getName() + "初始化完成 " + "当前位置：" + currentPosition + " 目标位置：" + targetPosition);
                     initFlag = false;
                     switch (Thread.currentThread().getName()) {
-                        case FLAG_THREAD_2 -> {
-                            isMainThread = false;
-                            condition2.await();
-                        }
-                        case FLAG_THREAD_3 -> {
-                            //唤醒线程4 自身线程挂起阻塞
-                            isMainThread = false;
-                            condition3.await();
-                        }
-                        case FLAG_THREAD_4 -> {
-                            //唤醒线程1 自身线程挂起阻塞
-                            isMainThread = false;
-                            condition4.await();
-                        }
+                        case FLAG_THREAD_2 -> condition2.await();
+                        case FLAG_THREAD_3 -> condition3.await();
+                        case FLAG_THREAD_4 -> condition4.await();
                     }
                 }
 
@@ -250,12 +237,12 @@ public class Agent implements Runnable {
         }
         //在函数没有结束的情况下，向所有可能代理发送请求
         for (int i = 0; i < 4; i++) {
-            if (requestAgents[i] != 0 && !Objects.equals(agentResponse.get(requestAgents[i]), "REFUSE_MOVE")) {
+            if (requestAgents[i] != 0 && agentStatus.getAgentStatus(requestAgents[i]) == 0 && !Objects.equals(agentResponse.get(requestAgents[i]), "REFUSE_MOVE")) {
                 System.out.println("Agent" + Thread.currentThread().getName() + "向Agent" + requestAgents[i] + "发送让路请求");
                 sendRequest(requestAgents[i], currentPosition);//等待消息，交由handrequest控制
             }
         }
-        System.out.println("Agent"+ Thread.currentThread().getName() +" 动不了，死循环，寄！");
+        System.out.println("Agent" + Thread.currentThread().getName() + " 动不了，死循环，寄！");
         return false;
     }
 
