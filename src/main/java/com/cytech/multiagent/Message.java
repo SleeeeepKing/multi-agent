@@ -16,7 +16,7 @@ public class Message {
         this.senderId = 0;
         this.receiverId = 0;
         this.content = "";
-        this.isRead = false;
+        this.isRead = true;
     }
 
     public static Message getInstance() {

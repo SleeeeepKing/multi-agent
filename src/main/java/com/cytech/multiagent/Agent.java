@@ -30,6 +30,7 @@ public class Agent implements Runnable {
     private Condition condition3;
     private Condition condition4;
     private boolean isMainThread;
+    private boolean initFlag;
 
 
     public Agent(int agentId, int currentPosition, int targetPosition, Map map, Message message, ReentrantLock lock, Condition condition1, Condition condition2, Condition condition3, Condition condition4) {
@@ -44,7 +45,9 @@ public class Agent implements Runnable {
         this.map = map;
         this.message = message;
         this.isMainThread = false;
+        this.initFlag = true;
     }
+
     private void stopCurrentThread() throws InterruptedException {
         switch (Thread.currentThread().getName()) {
             case FLAG_THREAD_1 -> {
@@ -61,26 +64,60 @@ public class Agent implements Runnable {
             }
         }
     }
+
     private void changeThread(int receiverId) throws InterruptedException {
-        switch (receiverId){
-            case 1->{
-                stopCurrentThread();
+        switch (receiverId) {
+            case 1 -> {
                 condition1.signal();
-            }
-            case 2->{
                 stopCurrentThread();
+
+            }
+            case 2 -> {
                 condition2.signal();
-            }
-            case 3->{
                 stopCurrentThread();
+
+            }
+            case 3 -> {
                 condition3.signal();
-            }
-            case 4->{
                 stopCurrentThread();
+
+            }
+            case 4 -> {
                 condition4.signal();
+                stopCurrentThread();
+
             }
         }
 
+    }
+
+    private void sequenceRun() throws InterruptedException {
+        switch (Thread.currentThread().getName()) {
+            case FLAG_THREAD_1 -> {
+                //唤醒线程2 自身线程挂起阻塞
+                isMainThread = false;
+                condition2.signal();
+                condition1.await();
+            }
+            case FLAG_THREAD_2 -> {
+                //唤醒线程3 自身线程挂起阻塞
+                isMainThread = false;
+                condition3.signal();
+                condition2.await();
+            }
+            case FLAG_THREAD_3 -> {
+                //唤醒线程4 自身线程挂起阻塞
+                isMainThread = false;
+                condition4.signal();
+                condition3.await();
+            }
+            case FLAG_THREAD_4 -> {
+                //唤醒线程1 自身线程挂起阻塞
+                isMainThread = false;
+                condition1.signal();
+                condition4.await();
+            }
+        }
     }
 
     // 线程的run方法，执行代理逻辑
@@ -89,51 +126,57 @@ public class Agent implements Runnable {
         while (true) {
             try {
                 lock.lock();
-                System.out.println("Agent"+ Thread.currentThread().getName() + "开始行动");
-                isMainThread = true;
                 Thread.sleep(1000);
-                // todo 在这里实现代理的逻辑，例如移动和与其他代理交互
-                if (!message.isRead()){
-                    System.out.println("Agent"+ Thread.currentThread().getName() + "收到消息：" + message.getContent());
-                    message.setRead(true);
-                }
-                int mainAgentId = 0;
-                if (!isMainThread){
-                    mainAgentId = message.getSenderId();
-                }
-                message.setMessage(agentId, 2,"hello agent2", false);
-                int receiverId = message.getReceiverId();
-                changeThread(receiverId);
-                if (!isMainThread){
-                    changeThread(mainAgentId);
-                }
-                // 该回合结束，唤醒下一个线程
-                switch (Thread.currentThread().getName()) {
-                    case FLAG_THREAD_1 -> {
-                        //唤醒线程2 自身线程挂起阻塞
-                        isMainThread = false;
-                        condition2.signal();
-                        condition1.await();
+                if (!initFlag) {
+                    isMainThread = true;
+                    int receiverId = 0;
+                    System.out.println("Agent" + Thread.currentThread().getName() + "开始行动");
+                    // todo 在这里实现代理的逻辑，例如移动和与其他代理交互
+                    if (!message.isRead() && message.getReceiverId() == agentId) {
+                        System.out.println("Agent" + Thread.currentThread().getName() + "收到消息：" + message.getContent());
+                        message.setRead(true);
                     }
-                    case FLAG_THREAD_2 -> {
-                        //唤醒线程3 自身线程挂起阻塞
-                        isMainThread = false;
-                        condition3.signal();
-                        condition2.await();
+                    int mainAgentId = message.getReceiverId();
+                    if (!isMainThread) {
+                        mainAgentId = message.getSenderId();
                     }
-                    case FLAG_THREAD_3 -> {
-                        //唤醒线程4 自身线程挂起阻塞
-                        isMainThread = false;
-                        condition4.signal();
-                        condition3.await();
+                    if (message.isRead()) {
+
+                        receiverId = agentId + 2;
+                        receiverId = receiverId > 4 ? receiverId - 4 : receiverId;
+                        message.setMessage(agentId,receiverId , "hello agent"+ receiverId, false);
+                        System.out.println("Agent" + Thread.currentThread().getName() + "发送消息：" + message.getContent());
                     }
-                    case FLAG_THREAD_4 -> {
-                        //唤醒线程1 自身线程挂起阻塞
-                        isMainThread = false;
-                        condition1.signal();
-                        condition4.await();
+                    if (receiverId != agentId) {
+                        changeThread(receiverId);
+                        if (!isMainThread) {
+                            changeThread(mainAgentId);
+                        }
+                    }
+                    // 该回合结束，唤醒下一个线程
+
+                    sequenceRun();
+                } else {
+                    System.out.println("Agent" + Thread.currentThread().getName() + "初始化完成");
+                    initFlag = false;
+                    switch (Thread.currentThread().getName()) {
+                        case FLAG_THREAD_2 -> {
+                            isMainThread = false;
+                            condition2.await();
+                        }
+                        case FLAG_THREAD_3 -> {
+                            //唤醒线程4 自身线程挂起阻塞
+                            isMainThread = false;
+                            condition3.await();
+                        }
+                        case FLAG_THREAD_4 -> {
+                            //唤醒线程1 自身线程挂起阻塞
+                            isMainThread = false;
+                            condition4.await();
+                        }
                     }
                 }
+
             } catch (Exception e) {
                 e.printStackTrace();
                 return;
