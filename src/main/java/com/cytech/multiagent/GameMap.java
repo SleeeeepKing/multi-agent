@@ -31,6 +31,15 @@ public class GameMap {
     public void set(int index, int value) {
         map[index] = value;
     }
+
+    public void printMap() {
+        for (int i = 0; i < 25; i++) {
+            System.out.print(map[i] + " ");
+            if ((i + 1) % 5 == 0) {
+                System.out.println();
+            }
+        }
+    }
 }
 
 

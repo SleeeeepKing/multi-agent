@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Application {
 
 
-    public static void main(String[] args) throws InterruptedException{
+    public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
         ReentrantLock lock = new ReentrantLock(true);
         Condition condition1 = lock.newCondition();
@@ -28,6 +28,12 @@ public class Application {
         Agent agent2 = new Agent(2, 1, 23, map, message, lock, condition1, condition2, condition3, condition4);
         Agent agent3 = new Agent(3, 2, 22, map, message, lock, condition1, condition2, condition3, condition4);
         Agent agent4 = new Agent(4, 3, 21, map, message, lock, condition1, condition2, condition3, condition4);
+
+        map.set(agent1.getCurrentPosition(), agent1.getAgentId());
+        map.set(agent2.getCurrentPosition(), agent2.getAgentId());
+        map.set(agent3.getCurrentPosition(), agent3.getAgentId());
+        map.set(agent4.getCurrentPosition(), agent4.getAgentId());
+        map.printMap();
 
         Thread thread1 = new Thread(agent1, Agent.FLAG_THREAD_1);
         Thread thread2 = new Thread(agent2, Agent.FLAG_THREAD_2);
