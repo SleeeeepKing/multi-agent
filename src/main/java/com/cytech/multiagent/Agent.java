@@ -251,10 +251,10 @@ public class Agent implements Runnable {
         for (int i = 0; i < 4; i++) {
             if (requestAgents[i] != 0 && !Objects.equals(agentResponse.get(requestAgents[i]), "REFUSE_MOVE")) {
                 System.out.println("Agent" + Thread.currentThread().getName() + "向Agent" + requestAgents[i] + "发送让路请求");
-                sendRequest(requestAgents[i], currentPosition);
+                sendRequest(requestAgents[i], currentPosition);//等待消息，交由handrequest控制
             }
         }
-        //等待消息，交由handrequest控制
+        System.out.println("Agent"+ Thread.currentThread().getName() +" 动不了，死循环，寄！");
         return false;
     }
 
@@ -279,7 +279,9 @@ public class Agent implements Runnable {
         //第一种情况，让路的路径恰巧也在移动方向上且没有被阻塞，则允许让路
         for (int i = 0; i < 4; i++) {
             if (direction[i] < 0 || direction[i] > 24) {
-                sendResponse(this.message.getSenderId(), "REFUSE_MOVE");
+                if (i == 3) {
+                    sendResponse(this.message.getSenderId(), "REFUSE_MOVE");
+                }
             } else if (direction[i] != 0 && direction[i] != senderPosition) {
                 if (map.get(direction[i]) == 0) {
                     move(agentId, direction[i]);
