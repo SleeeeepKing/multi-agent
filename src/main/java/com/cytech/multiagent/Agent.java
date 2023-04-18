@@ -107,111 +107,37 @@ public class Agent implements Runnable {
     }
 
     private void sequenceRun() throws InterruptedException {
-        switch (Thread.currentThread().getName()) {
-            case FLAG_THREAD_1 -> {
-                //唤醒线程2 自身线程挂起阻塞
-                if (agentStatus.getAgentStatus(2) == 1) {
-                    if (agentStatus.getAgentStatus(3) == 1) {
-                        if (agentStatus.getAgentStatus(4) == 1) {
-                            if (agentStatus.getAgentStatus(1) == 1) {
-                                System.out.println("所有Agent已经到达目标位置，游戏结束");
-                            }
-                        } else {
-                            agentStatus.setMainAgentId(4);
-                            condition4.signal();
-                            condition1.await();
-                        }
-                    } else {
-                        agentStatus.setMainAgentId(3);
-                        condition3.signal();
-                        condition1.await();
-                    }
+        int nextAgent = switch (Thread.currentThread().getName()) {
+            case FLAG_THREAD_1 -> agentStatus.getAgentStatus(2) == 1 ? (agentStatus.getAgentStatus(3) == 1 ? (agentStatus.getAgentStatus(4) == 1 ? 1 : 4) : 3) : 2;
+            case FLAG_THREAD_2 -> agentStatus.getAgentStatus(3) == 1 ? (agentStatus.getAgentStatus(4) == 1 ? (agentStatus.getAgentStatus(1) == 1 ? 2 : 1) : 4) : 3;
+            case FLAG_THREAD_3 -> agentStatus.getAgentStatus(4) == 1 ? (agentStatus.getAgentStatus(1) == 1 ? (agentStatus.getAgentStatus(2) == 1 ? 3 : 2) : 1) : 4;
+            case FLAG_THREAD_4 -> agentStatus.getAgentStatus(1) == 1 ? (agentStatus.getAgentStatus(2) == 1 ? (agentStatus.getAgentStatus(3) == 1 ? 4 : 3) : 2) : 1;
+            default -> throw new IllegalStateException("Invalid thread name");
+        };
 
-                } else {
-                    agentStatus.setMainAgentId(2);
-                    condition2.signal();
-                    condition1.await();
-                }
-            }
-            case FLAG_THREAD_2 -> {
-                //唤醒线程3 自身线程挂起阻塞
-                if (agentStatus.getAgentStatus(3) == 1) {
-                    if (agentStatus.getAgentStatus(4) == 1) {
-                        if (agentStatus.getAgentStatus(1) == 1) {
-                            if (agentStatus.getAgentStatus(2) == 1) {
-                                System.out.println("所有Agent已经到达目标位置，游戏结束");
-                            }
-                        } else {
-                            agentStatus.setMainAgentId(1);
-                            condition1.signal();
-                            condition2.await();
-                        }
-                    } else {
-                        agentStatus.setMainAgentId(4);
-                        condition4.signal();
-                        condition2.await();
-                    }
-
-                } else {
-                    agentStatus.setMainAgentId(3);
-                    condition3.signal();
-                    condition2.await();
-                }
-            }
-            case FLAG_THREAD_3 -> {
-                //唤醒线程4 自身线程挂起阻塞
-                if (agentStatus.getAgentStatus(4) == 1) {
-                    if (agentStatus.getAgentStatus(1) == 1) {
-                        if (agentStatus.getAgentStatus(2) == 1) {
-                            if (agentStatus.getAgentStatus(3) == 1) {
-                                System.out.println("所有Agent已经到达目标位置，游戏结束");
-                            }
-                        } else {
-                            agentStatus.setMainAgentId(2);
-                            condition2.signal();
-                            condition3.await();
-                        }
-                    } else {
-                        agentStatus.setMainAgentId(1);
-                        condition1.signal();
-                        condition3.await();
-                    }
-
-                } else {
-                    agentStatus.setMainAgentId(4);
-                    condition4.signal();
-                    condition3.await();
-                }
-            }
-            case FLAG_THREAD_4 -> {
-                //唤醒线程1 自身线程挂起阻塞
-                if (agentStatus.getAgentStatus(1) == 1) {
-                    if (agentStatus.getAgentStatus(2) == 1) {
-                        if (agentStatus.getAgentStatus(3) == 1) {
-                            if (agentStatus.getAgentStatus(4) == 1) {
-                                System.out.println("所有Agent已经到达目标位置，游戏结束");
-                            }
-                        } else {
-                            agentStatus.setMainAgentId(3);
-                            condition3.signal();
-                            condition4.await();
-                        }
-                    } else {
-                        agentStatus.setMainAgentId(2);
-                        condition2.signal();
-                        condition4.await();
-                    }
-
-                } else {
-                    agentStatus.setMainAgentId(1);
-                    condition1.signal();
-                    condition4.await();
-                }
-            }
+        if ( nextAgent != agentId) {
+            agentStatus.setMainAgentId(nextAgent);
+            getConditionByAgentId(nextAgent).signal();
+            getCurrentCondition().await();
         }
     }
 
-        // 线程的run方法，执行代理逻辑
+    private Condition getConditionByAgentId(int agentId) {
+        return switch (agentId) {
+            case 1 -> condition1;
+            case 2 -> condition2;
+            case 3 -> condition3;
+            case 4 -> condition4;
+            default -> throw new IllegalArgumentException("Invalid agent ID");
+        };
+    }
+
+    private Condition getCurrentCondition() {
+        return getConditionByAgentId(Integer.parseInt(Thread.currentThread().getName()));
+    }
+
+
+    // 线程的run方法，执行代理逻辑
         @Override
         public void run () {
             while (running) {
