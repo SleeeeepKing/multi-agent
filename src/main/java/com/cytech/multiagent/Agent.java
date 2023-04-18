@@ -140,6 +140,7 @@ public class Agent implements Runnable {
                     System.out.println("----------------------------------------");
                     if (currentPosition == targetPosition) {
                         System.out.println("Agent" + Thread.currentThread().getName() + "已经到达目标位置");
+                        sequenceRun();
                     } else {
                         System.out.println("Agent" + Thread.currentThread().getName() + "开始行动");
                         receiveResponse();
