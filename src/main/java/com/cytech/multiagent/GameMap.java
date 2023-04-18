@@ -1,11 +1,11 @@
 package com.cytech.multiagent;
 
-public class Map {
+public class GameMap {
     // 使用一个静态变量来保存唯一实例
-    private static Map instance;
+    private static GameMap instance;
 
     // 将构造函数设为私有，以防止外部创建实例
-    private Map() {
+    private GameMap() {
         // 初始化地图数据
         for (int i = 0; i < 25; i++) {
             map[i] = 0;
@@ -13,9 +13,9 @@ public class Map {
     }
 
     // 提供一个公共静态方法来获取唯一实例
-    public static Map getInstance() {
+    public static GameMap getInstance() {
         if (instance == null) {
-            instance = new Map();
+            instance = new GameMap();
         }
         return instance;
     }

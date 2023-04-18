@@ -20,7 +20,7 @@ public class Application {
         Condition condition3 = lock.newCondition();
         Condition condition4 = lock.newCondition();
 
-        Map map = Map.getInstance();
+        GameMap map = GameMap.getInstance();
         Message message = Message.getInstance();
 
         // 创建并启动四个代理线程
