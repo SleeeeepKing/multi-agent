@@ -25,9 +25,9 @@ public class Application {
         AgentStatus agentStatus = AgentStatus.getInstance();
 
         // 创建并启动四个代理线程
-        Agent agent1 = new Agent(1, 0, 24, map, message, agentStatus, lock, condition1, condition2, condition3, condition4);
-        Agent agent2 = new Agent(2, 1, 23, map, message, agentStatus, lock, condition1, condition2, condition3, condition4);
-        Agent agent3 = new Agent(3, 2, 22, map, message, agentStatus, lock, condition1, condition2, condition3, condition4);
+        Agent agent1 = new Agent(1, 0, 2, map, message, agentStatus, lock, condition1, condition2, condition3, condition4);
+        Agent agent2 = new Agent(2, 2, 23, map, message, agentStatus, lock, condition1, condition2, condition3, condition4);
+        Agent agent3 = new Agent(3, 1, 22, map, message, agentStatus, lock, condition1, condition2, condition3, condition4);
         Agent agent4 = new Agent(4, 3, 21, map, message, agentStatus, lock, condition1, condition2, condition3, condition4);
 
         map.set(agent1.getCurrentPosition(), agent1.getAgentId());

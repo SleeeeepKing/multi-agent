@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.locks.Condition;
@@ -48,7 +49,11 @@ public class Agent implements Runnable {
         this.agentStatus = agentStatus;
         this.initFlag = true;
         this.requestAgents = new int[]{0, 0, 0, 0};
-        this.agentResponse = Map.of(1, "ALLOW_MOVE", 2, "ALLOW_MOVE", 3, "ALLOW_MOVE", 4, "ALLOW_MOVE");
+        this.agentResponse = new HashMap<>();
+        agentResponse.put(1, "ALLOW_MOVE");
+        agentResponse.put(2, "ALLOW_MOVE");
+        agentResponse.put(3, "ALLOW_MOVE");
+        agentResponse.put(4, "ALLOW_MOVE");
     }
 
     private void updateResponse(int agentId, String response) {
@@ -104,21 +109,25 @@ public class Agent implements Runnable {
         switch (Thread.currentThread().getName()) {
             case FLAG_THREAD_1 -> {
                 //唤醒线程2 自身线程挂起阻塞
+                agentStatus.setMainAgentId(2);
                 condition2.signal();
                 condition1.await();
             }
             case FLAG_THREAD_2 -> {
                 //唤醒线程3 自身线程挂起阻塞
+                agentStatus.setMainAgentId(3);
                 condition3.signal();
                 condition2.await();
             }
             case FLAG_THREAD_3 -> {
                 //唤醒线程4 自身线程挂起阻塞
+                agentStatus.setMainAgentId(4);
                 condition4.signal();
                 condition3.await();
             }
             case FLAG_THREAD_4 -> {
                 //唤醒线程1 自身线程挂起阻塞
+                agentStatus.setMainAgentId(1);
                 condition1.signal();
                 condition4.await();
             }
@@ -139,13 +148,16 @@ public class Agent implements Runnable {
                             sequenceRun();
                         }
                     } else {
-                        System.out.println("----------------------------------------");
-                        System.out.println("Agent" + Thread.currentThread().getName() + "开始行动");
-                        receiveResponse();
-                        receiveRequest();
-                        move();
-                        // 该回合结束，唤醒下一个线程
-                        sequenceRun();
+                        if (agentStatus.getMainAgentId() == agentId) {
+                            System.out.println("----------------------------------------");
+                            System.out.println("Agent" + Thread.currentThread().getName() + "开始行动");
+                            move();
+                            // 该回合结束，唤醒下一个线程
+                            System.out.println("Agent" + Thread.currentThread().getName() + "行动结束");
+                            sequenceRun();
+                        } else {
+                            receiveRequest();
+                        }
                     }
                 } else {
                     System.out.println("Agent" + Thread.currentThread().getName() + "初始化完成 " + "当前位置：" + currentPosition + " 目标位置：" + targetPosition);
@@ -240,9 +252,11 @@ public class Agent implements Runnable {
             if (requestAgents[i] != 0 && agentStatus.getAgentStatus(requestAgents[i]) == 0 && !Objects.equals(agentResponse.get(requestAgents[i]), "REFUSE_MOVE")) {
                 System.out.println("Agent" + Thread.currentThread().getName() + "向Agent" + requestAgents[i] + "发送让路请求");
                 sendRequest(requestAgents[i], currentPosition);//等待消息，交由handrequest控制
+                receiveResponse();
+            } else if (i == 3) {
+                System.out.println("Agent" + Thread.currentThread().getName() + " 动不了，死循环，寄！");
             }
         }
-        System.out.println("Agent" + Thread.currentThread().getName() + " 动不了，死循环，寄！");
         return false;
     }
 
@@ -252,9 +266,13 @@ public class Agent implements Runnable {
         System.out.println("Agent" + Thread.currentThread().getName() + " 从 " + currentPosition + " 移动到 " + position);
         map.printMap();
         currentPosition = position;
+        if (currentPosition == targetPosition) {
+            agentStatus.setAgentStatus(agentId, 1);
+            System.out.println("Agent" + Thread.currentThread().getName() + "已经到达目标位置");
+        }
     }
 
-    private void handleRequest() throws InterruptedException {
+    private boolean handleRequest() throws InterruptedException {
         //从消息中获得棋子id和其位置
         int senderPosition = 0;
         String message = this.message.getContent();
@@ -269,11 +287,13 @@ public class Agent implements Runnable {
             if (direction[i] < 0 || direction[i] > 24) {
                 if (i == 3) {
                     sendResponse(this.message.getSenderId(), "REFUSE_MOVE");
+                    return true;
                 }
             } else if (direction[i] != 0 && direction[i] != senderPosition) {
                 if (map.get(direction[i]) == 0) {
                     move(agentId, direction[i]);
                     sendResponse(this.message.getSenderId(), "ALLOW_MOVE");
+                    return true;
                 }
             } else if (direction[i] != senderPosition) {
                 //如果被阻塞,且阻塞棋子不是请求棋子,则记录该棋子id
@@ -285,12 +305,16 @@ public class Agent implements Runnable {
             if (requestAgents[i] != 0) {
                 req = 1;
                 sendRequest(requestAgents[i], currentPosition);// 请求，等待，交由handleRequest处理
+                receiveResponse();
+                if (agentResponse.get(requestAgents[i]).equals("ALLOW_MOVE")) {
+                    return true;
+                }
             }
         }
         if (req == 0) {
             sendResponse(this.message.getSenderId(), "REFUSE_MOVE");// 不允许，说明唯一的阻塞棋子也是请求棋子，那么就不允许移动
         }
-
+        return true;
     }
 
     private void sendResponse(int receiverId, String content) throws InterruptedException {
@@ -298,7 +322,7 @@ public class Agent implements Runnable {
         changeThread(receiverId);
     }
 
-    private void receiveResponse() {
+    private void receiveResponse() throws InterruptedException {
         if (!message.isRead() && message.getReceiverId() == agentId && message.getType() == MessageTypeEnum.RESPONSE) {
             System.out.println("Agent" + Thread.currentThread().getName() + "收到回复：" + message.getContent());
             message.setRead(true);
@@ -306,7 +330,8 @@ public class Agent implements Runnable {
         }
     }
 
-    private void handleResponse(String content) {
+    private void handleResponse(String content) throws InterruptedException {
         updateResponse(message.getSenderId(), content);
+        move();
     }
 }
