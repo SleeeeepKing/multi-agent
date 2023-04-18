@@ -10,7 +10,7 @@ public class AgentStatus {
 
     private AgentStatus() {
         // 初始化地图数据
-        for (int i = 0; i < 4; i++) {
+        for (int i = 1; i < 5; i++) {
             agentStatus.put(i, 0);
         }
         mainAgentId = 1;
