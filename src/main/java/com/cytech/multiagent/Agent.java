@@ -156,23 +156,23 @@ public class Agent implements Runnable {
                 if (!initFlag) {
                     if (currentPosition == targetPosition) {
                         if (agentStatus.getAgentStatus(agentId) == 1) {
-                            System.out.println("Agent" + Thread.currentThread().getName() + "已经到达目标位置，线程结束");
+                            System.out.println("Agent" + Thread.currentThread().getName() + " has reached the target location and the thread has ended");
                             stopThread();
                         }
                     } else {
                         if (agentStatus.getMainAgentId() == agentId) {
                             System.out.println("----------------------------------------");
-                            System.out.println("Agent" + Thread.currentThread().getName() + "开始行动");
+                            System.out.println("Agent" + Thread.currentThread().getName() + " round starts.");
                             move();
                             // 该回合结束，唤醒下一个线程
-                            System.out.println("Agent" + Thread.currentThread().getName() + "行动结束");
+                            System.out.println("Agent" + Thread.currentThread().getName() + " round ends.");
                             sequenceRun();
                         } else {
                             receiveRequest();
                         }
                     }
                 } else {
-                    System.out.println("Agent" + Thread.currentThread().getName() + "初始化完成 " + "当前位置：" + currentPosition + " 目标位置：" + targetPosition);
+                    System.out.println("Agent" + Thread.currentThread().getName() + " initialization complete, current position: " + currentPosition + " target position: " + targetPosition);
                     initFlag = false;
                     switch (Thread.currentThread().getName()) {
                         case FLAG_THREAD_2 -> condition2.await();
@@ -188,7 +188,7 @@ public class Agent implements Runnable {
                 lock.unlock();
             }
             if (allAgentsReachedTarget()) {
-                System.out.println("所有Agent已经到达目标位置，游戏结束");
+                System.out.println("All Agents have reached the target location, game over");
             }
         }
 
@@ -236,7 +236,7 @@ public class Agent implements Runnable {
 
     public void receiveRequest() throws InterruptedException {
         if (!message.isRead() && message.getReceiverId() == agentId && message.getType() == MessageTypeEnum.REQUEST) {
-            System.out.println("Agent" + Thread.currentThread().getName() + "收到请求：" + message.getContent());
+            System.out.println("Agent" + Thread.currentThread().getName() + " received request: " + message.getContent());
             message.setRead(true);
             handleRequest();
         }
@@ -265,11 +265,11 @@ public class Agent implements Runnable {
         //在函数没有结束的情况下，向所有可能代理发送请求
         for (int i = 0; i < 4; i++) {
             if (requestAgents[i] != 0 && agentStatus.getAgentStatus(requestAgents[i]) == 0 && !Objects.equals(agentResponse.get(requestAgents[i]), "REFUSE_MOVE")) {
-                System.out.println("Agent" + Thread.currentThread().getName() + "向Agent" + requestAgents[i] + "发送让路请求");
+                System.out.println("Agent" + Thread.currentThread().getName() + " sends give way request to " + requestAgents[i]);
                 sendRequest(requestAgents[i], currentPosition);//等待消息，交由handrequest控制
                 receiveResponse();
             } else if (i == 3) {
-                System.out.println("Agent" + Thread.currentThread().getName() + " 动不了，死循环，寄！");
+                System.out.println("Agent" + Thread.currentThread().getName() + " cannot move, game failed");
             }
         }
         return false;
@@ -278,12 +278,12 @@ public class Agent implements Runnable {
     private void move(int agentId, int position) {
         map.set(currentPosition, 0);
         map.set(position, agentId);
-        System.out.println("Agent" + Thread.currentThread().getName() + " 从 " + currentPosition + " 移动到 " + position);
+        System.out.println("Agent" + Thread.currentThread().getName() + " moves from " + currentPosition + " to " + position);
         map.printMap();
         currentPosition = position;
         if (currentPosition == targetPosition) {
             agentStatus.setAgentStatus(agentId, 1);
-            System.out.println("Agent" + Thread.currentThread().getName() + "已经到达目标位置, 线程结束");
+            System.out.println("Agent" + Thread.currentThread().getName() + " has reached the target position, thread ended");
             stopThread();
         }
     }
@@ -340,7 +340,7 @@ public class Agent implements Runnable {
 
     private void receiveResponse() throws InterruptedException {
         if (!message.isRead() && message.getReceiverId() == agentId && message.getType() == MessageTypeEnum.RESPONSE) {
-            System.out.println("Agent" + Thread.currentThread().getName() + "收到回复：" + message.getContent());
+            System.out.println("Agent" + Thread.currentThread().getName() + " received response: " + message.getContent());
             message.setRead(true);
             handleResponse(message.getContent());
         }
