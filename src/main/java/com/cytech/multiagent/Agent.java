@@ -14,21 +14,12 @@ import java.util.concurrent.locks.ReentrantLock;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Agent implements Runnable {
-    public static final String FLAG_THREAD_1 = "1";
-    public static final String FLAG_THREAD_2 = "2";
-    public static final String FLAG_THREAD_3 = "3";
-    public static final String FLAG_THREAD_4 = "4";
     private int agentId;
     private int currentPosition;
     private int targetPosition;
     private int nextPosition;
     private GameMap map;
-    private Message message;
-    private ReentrantLock lock;
-    private Condition condition1;
-    private Condition condition2;
-    private Condition condition3;
-    private Condition condition4;
+    private MessageList messageList;
     private boolean initFlag;
     private int[] requestAgents;
     private Map<Integer, String> agentResponse;
@@ -36,17 +27,12 @@ public class Agent implements Runnable {
     private volatile boolean running = true;
 
 
-    public Agent(int agentId, int currentPosition, int targetPosition, GameMap map, Message message, AgentStatus agentStatus, ReentrantLock lock, Condition condition1, Condition condition2, Condition condition3, Condition condition4) {
-        this.lock = lock;
-        this.condition1 = condition1;
-        this.condition2 = condition2;
-        this.condition3 = condition3;
-        this.condition4 = condition4;
+    public Agent(int agentId, int currentPosition, int targetPosition, GameMap map, MessageList messageList, AgentStatus agentStatus) {
         this.agentId = agentId;
         this.currentPosition = currentPosition;
         this.targetPosition = targetPosition;
         this.map = map;
-        this.message = message;
+        this.messageList = messageList;
         this.agentStatus = agentStatus;
         this.initFlag = true;
         this.requestAgents = new int[]{0, 0, 0, 0};
@@ -61,138 +47,39 @@ public class Agent implements Runnable {
         agentResponse.put(agentId, response);
     }
 
-    private void stopCurrentThread() throws InterruptedException {
-        System.out.println("Agent " + agentId + " stop current thread");
-        switch (Thread.currentThread().getName()) {
-            case FLAG_THREAD_1 -> {
-                condition1.await();
-            }
-            case FLAG_THREAD_2 -> {
-                condition2.await();
-            }
-            case FLAG_THREAD_3 -> {
-                condition3.await();
-            }
-            case FLAG_THREAD_4 -> {
-                condition4.await();
-            }
-        }
-    }
-
-    private void changeThread(int receiverId) throws InterruptedException {
-        System.out.println("Agent " + agentId + " change thread to " + receiverId);
-        switch (receiverId) {
-            case 1 -> {
-                condition1.signal();
-                stopCurrentThread();
-
-            }
-            case 2 -> {
-                condition2.signal();
-                stopCurrentThread();
-
-            }
-            case 3 -> {
-                condition3.signal();
-                stopCurrentThread();
-
-            }
-            case 4 -> {
-                condition4.signal();
-                stopCurrentThread();
-
-            }
-        }
-
-    }
-
-    private void sequenceRun() throws InterruptedException {
-        int nextAgent = switch (Thread.currentThread().getName()) {
-            case FLAG_THREAD_1 ->
-                    agentStatus.getAgentStatus(2) == 1 ? (agentStatus.getAgentStatus(3) == 1 ? (agentStatus.getAgentStatus(4) == 1 ? 1 : 4) : 3) : 2;
-            case FLAG_THREAD_2 ->
-                    agentStatus.getAgentStatus(3) == 1 ? (agentStatus.getAgentStatus(4) == 1 ? (agentStatus.getAgentStatus(1) == 1 ? 2 : 1) : 4) : 3;
-            case FLAG_THREAD_3 ->
-                    agentStatus.getAgentStatus(4) == 1 ? (agentStatus.getAgentStatus(1) == 1 ? (agentStatus.getAgentStatus(2) == 1 ? 3 : 2) : 1) : 4;
-            case FLAG_THREAD_4 ->
-                    agentStatus.getAgentStatus(1) == 1 ? (agentStatus.getAgentStatus(2) == 1 ? (agentStatus.getAgentStatus(3) == 1 ? 4 : 3) : 2) : 1;
-            default -> throw new IllegalStateException("Invalid thread name");
-        };
-
-        if (nextAgent != agentId) {
-            agentStatus.setMainAgentId(nextAgent);
-            getConditionByAgentId(nextAgent).signal();
-            getCurrentCondition().await();
-        }
-    }
-
-    private Condition getConditionByAgentId(int agentId) {
-        return switch (agentId) {
-            case 1 -> condition1;
-            case 2 -> condition2;
-            case 3 -> condition3;
-            case 4 -> condition4;
-            default -> throw new IllegalArgumentException("Invalid agent ID");
-        };
-    }
-
-    private Condition getCurrentCondition() {
-        return getConditionByAgentId(Integer.parseInt(Thread.currentThread().getName()));
-    }
-
     private boolean allAgentsReachedTarget() {
         return agentStatus.getAgentStatus(1) == 1 && agentStatus.getAgentStatus(2) == 1 &&
                 agentStatus.getAgentStatus(3) == 1 && agentStatus.getAgentStatus(4) == 1;
     }
-
 
     // 线程的run方法，执行代理逻辑
     @Override
     public void run() {
         while (running) {
             try {
-                lock.lock();
                 Thread.sleep(1000);
-                if (!initFlag) {
-                    if (currentPosition == targetPosition) {
-                        if (agentStatus.getAgentStatus(agentId) == 1) {
-                            System.out.println("Agent" + Thread.currentThread().getName() + " has reached the target location and the thread has ended");
-                            stopThread();
-                        }
-                    } else {
-                        if (agentStatus.getMainAgentId() == agentId) {
-                            System.out.println("----------------------------------------");
-                            System.out.println("Agent" + Thread.currentThread().getName() + " round starts.");
-                            move();
-                            // 该回合结束，唤醒下一个线程
-                            System.out.println("Agent" + Thread.currentThread().getName() + " round ends.");
-                            sequenceRun();
-                        } else {
-                            receiveRequest();
-                        }
+                if (currentPosition == targetPosition) {
+                    if (agentStatus.getAgentStatus(agentId) == 1) {
+                        System.out.println("Agent" + Thread.currentThread().getName() + " has reached the target location and the thread has ended");
+                        stopThread();
                     }
                 } else {
-                    System.out.println("Agent" + Thread.currentThread().getName() + " initialization complete, current position: " + currentPosition + " target position: " + targetPosition);
-                    initFlag = false;
-                    switch (Thread.currentThread().getName()) {
-                        case FLAG_THREAD_2 -> condition2.await();
-                        case FLAG_THREAD_3 -> condition3.await();
-                        case FLAG_THREAD_4 -> condition4.await();
+                    if (agentStatus.getMainAgentId() == agentId) {
+                        System.out.println("----------------------------------------");
+                        move();
+                        // 该回合结束，唤醒下一个线程
+                    } else {
+                        receiveRequest();
                     }
                 }
-
             } catch (Exception e) {
                 e.printStackTrace();
                 return;
-            } finally {
-                lock.unlock();
             }
             if (allAgentsReachedTarget()) {
                 System.out.println("All Agents have reached the target location, game over");
             }
         }
-
-
     }
 
     private int[] direction() {
@@ -229,16 +116,18 @@ public class Agent implements Runnable {
     }
 
     // 其他方法，例如发送请求、接收请求、移动等
-    public void sendRequest(int receiverId, int senderPosition) throws InterruptedException {
-        message.setMessage(agentId, receiverId, "REQUEST_MOVE " + senderPosition, MessageTypeEnum.REQUEST, false);
-        changeThread(receiverId);
+    public void sendRequest(int receiverId, int senderPosition) {
+        messageList.addMessage(new Message(messageList.getMessages().size(), agentId, receiverId, "REQUEST_MOVE " + senderPosition, MessageTypeEnum.REQUEST, false));
     }
 
     public void receiveRequest() throws InterruptedException {
-        if (!message.isRead() && message.getReceiverId() == agentId && message.getType() == MessageTypeEnum.REQUEST) {
-            System.out.println("Agent" + Thread.currentThread().getName() + " received request: " + message.getContent());
-            message.setRead(true);
-            handleRequest();
+        //遍历消息列表，找到自己的消息
+        for (Message message : messageList.getUnreadMessageList(agentId)) {
+            if (!message.isRead() && message.getReceiverId() == agentId && message.getType() == MessageTypeEnum.REQUEST) {
+                System.out.println("Agent" + Thread.currentThread().getName() + " received request: " + message.getContent());
+                messageList.setRead(message.getId());
+                handleRequest(message);
+            }
         }
     }
 
@@ -288,12 +177,12 @@ public class Agent implements Runnable {
         }
     }
 
-    private boolean handleRequest() throws InterruptedException {
+    private boolean handleRequest(Message message) throws InterruptedException {
         //从消息中获得棋子id和其位置
         int senderPosition = 0;
-        String message = this.message.getContent();
-        if (message.startsWith("REQUEST_MOVE")) {
-            String[] messageArray = message.split(" ");
+        String content = message.getContent();
+        if (content.startsWith("REQUEST_MOVE")) {
+            String[] messageArray = content.split(" ");
             senderPosition = Integer.parseInt(messageArray[1]);
         }
         int[] requestAgents = {0, 0, 0, 0};
@@ -302,13 +191,13 @@ public class Agent implements Runnable {
         for (int i = 0; i < 4; i++) {
             if (direction[i] < 0 || direction[i] > 24) {
                 if (i == 3) {
-                    sendResponse(this.message.getSenderId(), "REFUSE_MOVE");
+                    sendResponse(message.getSenderId(), "REFUSE_MOVE");
                     return true;
                 }
             } else if (direction[i] != 0 && direction[i] != senderPosition) {
                 if (map.get(direction[i]) == 0) {
                     move(agentId, direction[i]);
-                    sendResponse(this.message.getSenderId(), "ALLOW_MOVE");
+                    sendResponse(message.getSenderId(), "ALLOW_MOVE");
                     return true;
                 }
             } else if (direction[i] != senderPosition) {
@@ -328,27 +217,204 @@ public class Agent implements Runnable {
             }
         }
         if (req == 0) {
-            sendResponse(this.message.getSenderId(), "REFUSE_MOVE");// 不允许，说明唯一的阻塞棋子也是请求棋子，那么就不允许移动
+//            messageList.addMessage(new Message(messageList.getMessages().size(), message.getSenderId(), "REFUSE_MOVE");// 不允许，说明唯一的阻塞棋子也是请求棋子，那么就不允许移动
         }
         return true;
     }
 
-    private void sendResponse(int receiverId, String content) throws InterruptedException {
-        message.setMessage(agentId, receiverId, content, MessageTypeEnum.RESPONSE, false);
-        changeThread(receiverId);
+    private void sendResponse(int receiverId, String content) {
+        messageList.addMessage(new Message(messageList.getMessages().size(), agentId, receiverId, content, MessageTypeEnum.RESPONSE, false));
     }
 
     private void receiveResponse() throws InterruptedException {
-        if (!message.isRead() && message.getReceiverId() == agentId && message.getType() == MessageTypeEnum.RESPONSE) {
-            System.out.println("Agent" + Thread.currentThread().getName() + " received response: " + message.getContent());
-            message.setRead(true);
-            handleResponse(message.getContent());
+        //遍历消息列表，找到自己的消息
+        for (Message message : messageList.getUnreadMessageList(agentId)) {
+            if (!message.isRead() && message.getReceiverId() == agentId && message.getType() == MessageTypeEnum.RESPONSE) {
+                System.out.println("Agent" + Thread.currentThread().getName() + " received response: " + message.getContent());
+                messageList.setRead(message.getId());
+                handleResponse(message.getContent());
+            }
         }
     }
 
     private void handleResponse(String content) throws InterruptedException {
+        //是否接受让路应以informer形式通知请求棋子，
+        //接受一个"回复请求通知"后，req参数-1
+        String informertype = "";
+
+        if (informertype == "回复请求") {
+            this.req = -1;
+            //向this.give_way_permit中添加对方是否同意让路
+            int id = 0;
+            boolean response = true;
+            this.give_way_permit.put(id, response);
+            if (this.req != 0) {
+                //TODO
+                //继续等待所有结果返回
+            } else {
+                //判断是否有结果为允许让路
+                if (this.give_way_permit.containsValue(true)) {
+
+                    for (Map.Entry<Integer, Boolean> entry : this.give_way_permit.entrySet()) {
+                        if (entry.getValue()) {
+                            this.allow_id = entry.getKey();
+                            break;
+                        }
+                    }
+                    //得到一个可让路的子棋子id
+
+                    // TODO
+                    if (this.fatherchess >= 0) {
+                        // 如果有父棋子，则先向父棋子发送"回复请求"，并等待
+                    } else {
+                        // 如果没有父棋子，向其发送"确认选择通知"(有多个棋子可以让路时只选择一个)。并等待得到对方"移动完成通知"(对方让路径后，再移动)。
+                    }
+
+
+                } else {
+
+                    if (this.fatherchess >= 0)
+                        this.Detour();
+                        //如果没有父棋子实现
+                        //绕路逻辑
+                    else
+                        this.allow = false;
+                    //如果有父棋子，向父棋子发送拒绝的"回复通知"
+                }
+
+            }
+        }
+        if (informertype == "确认移动") {
+            //收到确认移动，有两种情况，第一种可以直接让路，第二种让路路径被阻塞
+            //因为让路路径被阻塞，才会发送让路请求，才会产生子棋子，所以以此作为判断依据
+            if (this.childrenchess.isEmpty()) {
+                //对于第一种，执行移动，然后向父棋子发出"移动完成通知"
+            } else {
+                //对于第二种，先向子棋子发出"确认移动通知"，然后等待
+            }
+
+
+        }
+        if (informertype == "移动完成") {
+            //收到"移动完成通知"后，执行移动，如果还有父棋子，则向其发送移动完成通知，没有则结束
+            this.give_way_move();
+            if (this.fatherchess >= 0) {
+                //通知父棋子
+            } else {
+                //没有父棋子，说明是初始棋子，已经完成移动，可以让下一个棋子行动
+            }
+        }
         updateResponse(message.getSenderId(), content);
         move();
+    }
+
+    private void handleinformer() {
+        //是否接受让路应以informer形式通知请求棋子，
+        //接受一个"回复请求通知"后，req参数-1
+        String informertype = "";
+
+        if (informertype == "回复请求") {
+            this.req = -1;
+            //向this.give_way_permit中添加对方是否同意让路
+            int id = 0;
+            boolean response = true;
+            this.give_way_permit.put(id, response);
+            if (this.req != 0) {
+                //TODO
+                //继续等待所有结果返回
+            } else {
+                //判断是否有结果为允许让路
+                if (this.give_way_permit.containsValue(true)) {
+
+                    for (Map.Entry<Integer, Boolean> entry : this.give_way_permit.entrySet()) {
+                        if (entry.getValue()) {
+                            this.allow_id = entry.getKey();
+                            break;
+                        }
+                    }
+                    //得到一个可让路的子棋子id
+
+                    // TODO
+                    if (this.fatherchess >= 0) {
+                        // 如果有父棋子，则先向父棋子发送"回复请求"，并等待
+                    } else {
+                        // 如果没有父棋子，向其发送"确认选择通知"(有多个棋子可以让路时只选择一个)。并等待得到对方"移动完成通知"(对方让路径后，再移动)。
+                    }
+
+
+                } else {
+
+                    if (this.fatherchess >= 0)
+                        this.Detour();
+                        //如果没有父棋子实现
+                        //绕路逻辑
+                    else
+                        this.allow = false;
+                    //如果有父棋子，向父棋子发送拒绝的"回复通知"
+                }
+
+            }
+        }
+        if (informertype == "确认移动") {
+            //收到确认移动，有两种情况，第一种可以直接让路，第二种让路路径被阻塞
+            //因为让路路径被阻塞，才会发送让路请求，才会产生子棋子，所以以此作为判断依据
+            if (this.childrenchess.isEmpty()) {
+                //对于第一种，执行移动，然后向父棋子发出"移动完成通知"
+            } else {
+                //对于第二种，先向子棋子发出"确认移动通知"，然后等待
+            }
+
+
+        }
+        if (informertype == "移动完成") {
+            //收到"移动完成通知"后，执行移动，如果还有父棋子，则向其发送移动完成通知，没有则结束
+            this.give_way_move();
+            if (this.fatherchess >= 0) {
+                //通知父棋子
+            } else {
+                //没有父棋子，说明是初始棋子，已经完成移动，可以让下一个棋子行动
+            }
+        }
+    }
+
+    private void give_way_move() {
+        if (childrenchess.isEmpty()) {
+            MapChess.getInstant()[this.give_way_position] = this.id;
+            MapChess.getInstant()[this.position] = 0;
+        }
+        if (this.allow_id != 0) {
+            MapChess.getInstant()[this.request_position.get(this.allow_id)] = this.id;
+            MapChess.getInstant()[this.position] = 0;
+        }
+        this.reset_variable();
+    }
+
+    private void Detour() {
+        int[] direction = this.direction();
+        int next_position = -1;
+        for (int i = 0; i < 4; i++) {
+            //绕路也不走回头路
+            if (direction[i] == 0 && direction[i] != this.last_position) {
+                switch (i) {
+                    case 0 -> next_position = this.position - 5;
+                    case 1 -> next_position = this.position + 5;
+                    case 2 -> {
+                        if (this.position % 5 != 0)
+                            next_position = this.position - 1;
+                    }
+                    case 3 -> {
+                        if ((this.position + 1) % 5 != 0)
+                            next_position = this.position + 1;
+                    }
+                }
+                if (next_position >= 0 && next_position <= 24)
+                    break;
+            }
+        }
+        // 绕路，并记录当前位置，避免下次行动回到该位置
+        this.last_position = this.position;
+        MapChess.getInstant()[this.position] = 0;
+        MapChess.getInstant()[next_position] = this.id;
     }
 
     private void stopThread() {

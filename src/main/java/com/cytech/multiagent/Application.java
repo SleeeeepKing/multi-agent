@@ -14,21 +14,16 @@ public class Application {
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
-        ReentrantLock lock = new ReentrantLock(true);
-        Condition condition1 = lock.newCondition();
-        Condition condition2 = lock.newCondition();
-        Condition condition3 = lock.newCondition();
-        Condition condition4 = lock.newCondition();
 
         GameMap map = GameMap.getInstance();
-        Message message = Message.getInstance();
+        MessageList messageList = MessageList.getInstance();
         AgentStatus agentStatus = AgentStatus.getInstance();
 
         // 创建并启动四个代理线程
-        Agent agent1 = new Agent(1, 0, 2, map, message, agentStatus, lock, condition1, condition2, condition3, condition4);
-        Agent agent2 = new Agent(2, 2, 23, map, message, agentStatus, lock, condition1, condition2, condition3, condition4);
-        Agent agent3 = new Agent(3, 1, 22, map, message, agentStatus, lock, condition1, condition2, condition3, condition4);
-        Agent agent4 = new Agent(4, 3, 21, map, message, agentStatus, lock, condition1, condition2, condition3, condition4);
+        Agent agent1 = new Agent(1, 0, 2, map, messageList, agentStatus);
+        Agent agent2 = new Agent(2, 2, 23, map, messageList, agentStatus);
+        Agent agent3 = new Agent(3, 1, 22, map, messageList, agentStatus);
+        Agent agent4 = new Agent(4, 3, 21, map, messageList, agentStatus);
 
         map.set(agent1.getCurrentPosition(), agent1.getAgentId());
         map.set(agent2.getCurrentPosition(), agent2.getAgentId());

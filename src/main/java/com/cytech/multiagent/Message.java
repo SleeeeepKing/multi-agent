@@ -2,37 +2,14 @@ package com.cytech.multiagent;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
 public class Message {
-    private static Message instance;
+    private int id;
     private int senderId;
     private int receiverId;
     private String content;
-    private boolean isRead;
     private MessageTypeEnum type;
-
-    private Message() {
-        this.senderId = 0;
-        this.receiverId = 0;
-        this.content = "";
-        this.type = MessageTypeEnum.INIT;
-        this.isRead = true;
-    }
-
-    public static Message getInstance() {
-        if (instance == null) {
-            instance = new Message();
-        }
-        return instance;
-    }
-
-    public void setMessage(int senderId, int receiverId, String content, MessageTypeEnum type, boolean isRead) {
-        this.senderId = senderId;
-        this.receiverId = receiverId;
-        this.content = content;
-        this.type = type;
-        this.isRead = isRead;
-    }
+    private boolean isRead;
 }
