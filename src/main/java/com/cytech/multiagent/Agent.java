@@ -178,7 +178,6 @@ public class Agent extends Thread {
             System.out.println("Agent" + agentId + " has reached the target position, thread ended");
             stopThread();
         }
-        Thread.sleep(1000);
     }
 
     private boolean handleRequest(Message message) throws InterruptedException {
