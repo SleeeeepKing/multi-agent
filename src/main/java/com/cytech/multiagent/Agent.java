@@ -123,7 +123,7 @@ public class Agent extends Thread {
         messageList.addMessage(new Message(messageList.getMessages().size(), agentId, receiverId, "REQUEST_MOVE " + senderPosition, MessageTypeEnum.REQUEST, false));
     }
 
-    public void receiveRequest() throws InterruptedException {
+    public void receiveRequest() {
         //遍历消息列表，找到自己的消息
         for (Message message : messageList.getUnreadMessageList(agentId)) {
             if (!message.isRead() && message.getReceiverId() == agentId && message.getType() == MessageTypeEnum.REQUEST) {
@@ -134,7 +134,7 @@ public class Agent extends Thread {
         }
     }
 
-    public void move() throws InterruptedException {
+    public void move() {
         //得到可能移动的位置
         int[] direction = this.direction();
 
@@ -168,7 +168,7 @@ public class Agent extends Thread {
         }
     }
 
-    private void move(int agentId, int position) throws InterruptedException {
+    private void move(int agentId, int position) {
         map.set(currentPosition, 0);
         map.set(position, agentId);
         System.out.println("Agent" + agentId + " moves from " + currentPosition + " to " + position);
@@ -180,7 +180,7 @@ public class Agent extends Thread {
         }
     }
 
-    private boolean handleRequest(Message message) throws InterruptedException {
+    private boolean handleRequest(Message message) {
         //从消息中获得棋子id和其位置
         int senderPosition = 0;
         String content = message.getContent();
@@ -247,7 +247,7 @@ public class Agent extends Thread {
         return message.getContent().equals("ALLOW_MOVE");
     }
 
-    private void Detour() throws InterruptedException {
+    private void Detour() {
         System.out.println("Agent" + agentId + " is detouring");
         int[] direction = this.direction();
         int nextPosition = -1;
@@ -264,14 +264,15 @@ public class Agent extends Thread {
                         nextPosition = currentPosition + 5;
                     }
                     case 2 -> {
-                        System.out.println("Agnet" + agentId + " Detour to the left");
+
                         if (currentPosition % 5 != 0) {
+                            System.out.println("Agnet" + agentId + " Detour to the left");
                             nextPosition = currentPosition - 1;
                         }
                     }
                     case 3 -> {
-                        System.out.println("Agnet" + agentId + " Detour to the right");
                         if ((currentPosition + 1) % 5 != 0) {
+                            System.out.println("Agnet" + agentId + " Detour to the right");
                             nextPosition = currentPosition + 1;
                         }
                     }
