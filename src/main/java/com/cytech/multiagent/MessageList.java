@@ -16,15 +16,16 @@ public class MessageList {
         return instance;
     }
 
-    public void addMessage(Message message) {
-        messages.add(message);
+    public synchronized void addMessage(Message message) {
+            messages.add(message);
     }
 
-    public Message[] getUnreadMessageList(int receiveAgentId) {
+    public synchronized Message[] getUnreadMessageList(int receiveAgentId) {
+
         return messages.stream().filter(message -> message.getReceiverId() == receiveAgentId && !message.isRead()).toArray(Message[]::new);
     }
 
-    public void setRead(int messageId) {
-        messages.stream().filter(message -> message.getId() == messageId).forEach(message -> message.setRead(true));
+    public synchronized void setRead(int messageId) {
+            messages.stream().filter(message -> message.getId() == messageId).forEach(message -> message.setRead(true));
     }
 }

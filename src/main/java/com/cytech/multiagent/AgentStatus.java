@@ -6,14 +6,12 @@ import java.util.Map;
 public class AgentStatus {
     private static AgentStatus instance;
     private Map<Integer, Integer> agentStatus = new HashMap<>();
-    private int mainAgentId = 0;
 
     private AgentStatus() {
-        // 初始化地图数据
+        // 初始化数据, 0 代表未到达目标位置，1 代表已到达目标位置
         for (int i = 1; i < 5; i++) {
             agentStatus.put(i, 0);
         }
-        mainAgentId = 1;
     }
 
     public static AgentStatus getInstance() {
@@ -29,13 +27,5 @@ public class AgentStatus {
 
     public int getAgentStatus(int agentId) {
         return agentStatus.get(agentId);
-    }
-
-    public void setMainAgentId(int agentId) {
-        mainAgentId = agentId;
-    }
-
-    public int getMainAgentId() {
-        return mainAgentId;
     }
 }

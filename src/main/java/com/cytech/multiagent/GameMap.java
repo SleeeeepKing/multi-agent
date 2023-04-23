@@ -31,13 +31,23 @@ public class GameMap {
         map[index] = value;
     }
 
-    public void printMap() {
-        for (int i = 0; i < 25; i++) {
-            System.out.print(map[i] + " ");
-            if ((i + 1) % 5 == 0) {
-                System.out.println();
+    private int getIndex(int value) {
+        for (int i = 0; i < map.length; i++) {
+            if (map[i] == value) {
+                return i;
             }
         }
+        return -1; // 如果未找到值，则返回 -1
+    }
+
+    public void printMap() {
+//        for (int i = 0; i < 25; i++) {
+//            System.out.print(map[i] + " ");
+//            if ((i + 1) % 5 == 0) {
+//                System.out.println();
+//            }
+//        }
+        System.out.println("Agent 1: " + getIndex(1) + ", Agent 2: " + getIndex(2) + ", Agent 3: " + getIndex(3) + ", Agent 4: " + getIndex(4));
     }
 }
 

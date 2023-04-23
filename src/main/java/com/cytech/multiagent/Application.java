@@ -31,27 +31,22 @@ public class Application {
         map.set(agent4.getCurrentPosition(), agent4.getAgentId());
         map.printMap();
 
-        Thread thread1 = new Thread(agent1, Agent.FLAG_THREAD_1);
-        Thread thread2 = new Thread(agent2, Agent.FLAG_THREAD_2);
-        Thread thread3 = new Thread(agent3, Agent.FLAG_THREAD_3);
-        Thread thread4 = new Thread(agent4, Agent.FLAG_THREAD_4);
-
-        thread1.start();
-        thread2.start();
-        thread3.start();
-        thread4.start();
+        agent1.start();
+        agent2.start();
+        agent3.start();
+        agent4.start();
 
         // 等待所有代理线程完成
         try {
-            thread1.join();
-            thread2.join();
-            thread3.join();
-            thread4.join();
+            agent1.join();
+            agent2.join();
+            agent3.join();
+            agent4.join();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
         // 这里所有代理线程已完成
-        System.out.println("All agents have finished.");
+        System.out.println("Game Over");
     }
 }
