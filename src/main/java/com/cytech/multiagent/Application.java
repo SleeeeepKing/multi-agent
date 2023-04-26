@@ -19,39 +19,37 @@ public class Application {
         GameMap map = GameMap.getInstance();
         MessageList messageList = MessageList.getInstance();
         AgentStatus agentStatus = AgentStatus.getInstance();
-        Random r=new Random();
-        int[] initial_position=new int[5];
-        int[] final_position=new int[5];
-        int[] final_map=new int[25];
-        for (int i=0;i<25;i++)
-            final_map[i]=0;
-        for(int i=1;i<5;i++){
-            while (true){
-                int position=r.nextInt(25);
-                if(map.get(position)==0){
-                    initial_position[i]=position;
-                    System.out.print(position+"\n");
-                    map.set(position,i);
+        Random r = new Random();
+        int[] start = new int[5];
+        int[] end = new int[5];
+        for (int i = 1; i < 5; i++) {
+            while (true) {
+                int position = r.nextInt(25);
+                if (map.get(position) == 0) {
+                    start[i] = position;
+                    map.set(position, i);
                     break;
                 }
             }
         }
-        for(int i=1;i<5;i++){
-            while (true){
-                int position=r.nextInt(25);
-                if(final_map[position]==0){
-                    final_position[i]=position;
-                    final_map[position]=i;
-                    System.out.print(position+"\n");
+        for (int i = 1; i < 5; i++) {
+            while (true) {
+                int position = r.nextInt(25);
+                if (start[i] != position) {
+                    end[i] = position;
                     break;
                 }
             }
         }
+        System.out.println("Agent1 start: " + start[1] + " end: " + end[1]);
+        System.out.println("Agent2 start: " + start[2] + " end: " + end[2]);
+        System.out.println("Agent3 start: " + start[3] + " end: " + end[3]);
+        System.out.println("Agent4 start: " + start[4] + " end: " + end[4]);
         // 创建并启动四个代理线程
-        Agent agent1 = new Agent(1, initial_position[1], final_position[1], map, messageList, agentStatus);
-        Agent agent2 = new Agent(2, initial_position[2], final_position[2], map, messageList, agentStatus);
-        Agent agent3 = new Agent(3, initial_position[3], final_position[3], map, messageList, agentStatus);
-        Agent agent4 = new Agent(4, initial_position[4], final_position[4], map, messageList, agentStatus);
+        Agent agent1 = new Agent(1, start[1], end[1], map, messageList, agentStatus);
+        Agent agent2 = new Agent(2, start[2], end[2], map, messageList, agentStatus);
+        Agent agent3 = new Agent(3, start[3], end[3], map, messageList, agentStatus);
+        Agent agent4 = new Agent(4, start[4], end[4], map, messageList, agentStatus);
 
 
         map.printMap();
