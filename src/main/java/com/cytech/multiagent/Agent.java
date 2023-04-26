@@ -24,8 +24,10 @@ public class Agent extends Thread {
     private int[] requestAgents;
     private Map<Integer, String> agentResponse;
     private AgentStatus agentStatus;
-    private int lastPosition;
+    private int lastPosition=-2;
     private volatile boolean running = true;
+    private boolean ismoved=false;
+    private Map<Integer,Integer> record;
 
 
     public Agent(int agentId, int currentPosition, int targetPosition, GameMap map, MessageList messageList, AgentStatus agentStatus) {
@@ -38,6 +40,7 @@ public class Agent extends Thread {
         this.initFlag = true;
         this.requestAgents = new int[]{0, 0, 0, 0};
         this.agentResponse = new HashMap<>();
+        this.record=new HashMap<>();
         agentResponse.put(1, "");
         agentResponse.put(2, "");
         agentResponse.put(3, "");
@@ -72,8 +75,11 @@ public class Agent extends Thread {
                         stopThread();
                     }
                 } else {
+
                     receiveRequest();// 要判断该函数是否导致了棋子移动，如果移动了，则下个函数move需要跳过，保证每秒最多移动一次 wy
-                    move();
+                    if(!this.ismoved){
+                        move();}
+                    this.ismoved=false;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -137,10 +143,9 @@ public class Agent extends Thread {
     public void move() {
         //得到可能移动的位置
         int[] direction = this.direction();
-
         for (int i = 0; i < 4; i++) {
             //不为-1则可能移动
-            if (direction[i] != -1) {
+            if (direction[i] != -1&&direction[i]!=this.lastPosition) {
                 //该位置没有棋子，则直接移动返回true
                 if (map.get(direction[i]) == 0) {
                     move(agentId, direction[i]);
@@ -174,7 +179,8 @@ public class Agent extends Thread {
     private void move(int agentId, int position) {
         map.set(currentPosition, 0);
         map.set(position, agentId);
-        // 在普通move中，重置 lastPosition =-1 wy
+        this.ismoved=true;
+        this.lastPosition=-2;
         System.out.println("Agent" + agentId + " moves from " + currentPosition + " to " + position);
         map.printMap();
         currentPosition = position;
@@ -207,32 +213,13 @@ public class Agent extends Thread {
                     move(agentId, direction[i]);  // 记录信息，由run中的move实现移动 wy
                     sendResponse(message.getSenderId(), "ALLOW_MOVE");
                     return true;
+                }else {
+                    requestAgents[i] = map.get(direction[i]);
                 }
-            } else if (direction[i] != senderPosition) {
-                //如果被阻塞,且阻塞棋子不是请求棋子,则记录该棋子id
-                /**
-                 *        for(int i=0;i<4;i++) {
-                 *             if (direction[i] != -1 && direction[i] != position) {
-                 *                 if (MapChess.getInstant()[direction[i]] == 0) {
-                 *                     this.give_way_position=direction[i];
-                 *                     this.allow = true;
-                 *                     // 记录可让路的位置，向父棋子发送"回复请求"
-                 *                     // return;结束函数
-                 *                 }else
-                 *                     request_agence[i] = MapChess.getInstant()[direction[i]];
-                 *                     //如果被阻塞,且阻塞棋子不是请求棋子,则记录该棋子id
-                 *             }
-                 *         }
-                 *
-                 *   注意 ，这里判断是否记录id的条件是该位置是否有棋子 wy
-                 *
-                 *
-                 *
-                 *
-                 *
-                 * */
-                requestAgents[i] = map.get(direction[i]);
             }
+
+
+
         }
         int response = 0;
         for (int i = 0; i < 4; i++) {
@@ -278,30 +265,48 @@ public class Agent extends Thread {
     private void Detour() {
         System.out.println("Agent" + agentId + " is detouring");
         int[] direction = this.direction();
+        int avoid=-2;
+        if(this.record.containsKey(this.currentPosition)){
+            avoid=this.record.get(this.currentPosition);
+            System.out.println("avoid,"+avoid);
+            this.record=new HashMap<>();
+        }
         int nextPosition = -1;
         for (int i = 0; i < 4; i++) {
             //绕路也不走回头路
-            if (direction[i] == -1 && direction[i] != lastPosition) {
+            if (direction[i] == -1) {
                 switch (i) {
                     case 0 -> {
                         System.out.println("Agnet" + agentId + " Detour to the up");
                         nextPosition = currentPosition - 5;
+                        if(nextPosition==avoid){
+                            nextPosition=-1;
+                        }
                     }
                     case 1 -> {
                         System.out.println("Agnet" + agentId + " Detour to the down");
                         nextPosition = currentPosition + 5;
+                        if(nextPosition==avoid){
+                            nextPosition=-1;
+                        }
                     }
                     case 2 -> {
 
                         if (currentPosition % 5 != 0) {
                             System.out.println("Agnet" + agentId + " Detour to the left");
                             nextPosition = currentPosition - 1;
+                            if(nextPosition==avoid){
+                                nextPosition=-1;
+                            }
                         }
                     }
                     case 3 -> {
                         if ((currentPosition + 1) % 5 != 0) {
                             System.out.println("Agnet" + agentId + " Detour to the right");
                             nextPosition = currentPosition + 1;
+                            if(nextPosition==avoid){
+                                nextPosition=-1;
+                            }
                         }
                     }
                 }
@@ -309,10 +314,13 @@ public class Agent extends Thread {
                     break;
             }
         }
-        if (nextPosition != -1) {
+        if (nextPosition!=-1&&nextPosition <25) {
             // 绕路，并记录当前位置，避免下次行动回到该位置
-            move(agentId, nextPosition);
+            this.record.put(currentPosition,nextPosition);
             lastPosition = currentPosition;
+            move(agentId, nextPosition);
+
+
         }
     }
 
