@@ -63,7 +63,7 @@ public class Agent extends Thread {
                 agentStatus.getAgentStatus(3) == 1 && agentStatus.getAgentStatus(4) == 1;
     }
 
-    // 线程的run方法，执行代理逻辑
+    // The thread's run method, which executes the proxy logic
     @Override
     public void run() {
         while (running) {
@@ -76,7 +76,8 @@ public class Agent extends Thread {
                     }
                 } else {
 
-                    receiveRequest();// 要判断该函数是否导致了棋子移动，如果移动了，则下个函数move需要跳过，保证每秒最多移动一次 wy
+                    receiveRequest();// To determine if the function causes a piece to move, if it does,
+                                     // then the next move needs to be skipped, guaranteeing a maximum of one move per second
                     if(!this.ismoved){
                         move();}
                     this.ismoved=false;
@@ -92,45 +93,45 @@ public class Agent extends Thread {
     }
 
     private int[] direction() {
-        //根据当前位置和目标位置，计算可能行动的位置
+        //Calculation of the position of possible actions based on the current position and the target position
         int[] direction = {-1, -1, -1, -1};
-        //归零，对应 上 下 左 右
+        //Zeroed, corresponding to Up Down Left Right
 
         int positionX = currentPosition % 5;
         int positionY = currentPosition / 5;
         int targetPositionX = targetPosition % 5;
         int targetPositionY = targetPosition / 5;
-        //计算当前和目标位置的行和列
+        //Calculation of rows and columns for the current and target positions
 
-        //当前与目标位置是否在同一行
+        //Is the current and target position on the same line
         if (targetPositionY - positionY != 0) {
             if (targetPositionY > positionY) {
-                //目标位置的行数大于当前位置的行数，则可以下移
+                //The number of rows in the target position is greater than the number of rows in the current position,
+                // then you can move down
                 direction[1] = currentPosition + 5;
             } else {
-                //上移
+                //Move up
                 direction[0] = currentPosition - 5;
             }
         }
         if (targetPositionX - positionX != 0) {
             if (targetPositionX > positionX) {
-                //右移
+                //move right
                 direction[3] = currentPosition + 1;
             } else {
-                //左移
+                //move left
                 direction[2] = currentPosition - 1;
             }
         }
         return direction;
     }
 
-    // 其他方法，例如发送请求、接收请求、移动等
     public void sendRequest(int receiverId, int senderPosition) {
         messageList.addMessage(new Message(messageList.getMessages().size(), agentId, receiverId, "REQUEST_MOVE " + senderPosition, MessageTypeEnum.REQUEST, false));
     }
 
     public void receiveRequest() {
-        //遍历消息列表，找到自己的消息
+        //Iterate through the list of messages to find your own unread messages
         for (Message message : messageList.getUnreadMessageList(agentId)) {
             if (!message.isRead() && message.getReceiverId() == agentId && message.getType() == MessageTypeEnum.REQUEST) {
                 System.out.println("Agent" + agentId + " received request: " + message.getContent());
@@ -141,28 +142,28 @@ public class Agent extends Thread {
     }
 
     public void move() {
-        //得到可能移动的位置
+        //Get the location of possible moves
         int[] direction = this.direction();
         for (int i = 0; i < 4; i++) {
-            //不为-1则可能移动
+            //Possible movement if not -1
             if (direction[i] != -1&&direction[i]!=this.lastPosition) {
-                //该位置没有棋子，则直接移动返回true
+                //If there are no pieces in that position, move directly back to true
                 if (map.get(direction[i]) == 0) {
                     move(agentId, direction[i]);
                     return;
                 } else {
-                    //有棋子阻挡且没有拒绝让路，则记录
+                    //If a piece is in the way and does not refuse to give way, record
                     if (requestAgents[i] != -1) {
                         requestAgents[i] = map.get(direction[i]);
                     }
                 }
             }
         }
-        //在函数没有结束的情况下，向所有可能代理发送请求
+        //Send requests to all possible agents without the function ending
         for (int i = 0; i < 4; i++) {
             if (requestAgents[i] != 0 && agentStatus.getAgentStatus(requestAgents[i]) == 0 && !Objects.equals(agentResponse.get(requestAgents[i]), "REFUSE_MOVE")) {
                 System.out.println("Agent" + agentId + " sends give way request to " + requestAgents[i]);
-                sendRequest(requestAgents[i], currentPosition);//等待消息，交由handrequest控制
+                sendRequest(requestAgents[i], currentPosition);//Waiting for messages, left to handrequest control
                 if (receiveResponse()) {
                     resetResponse();
                     break;
@@ -171,8 +172,6 @@ public class Agent extends Thread {
                 Detour();
             }
         }
-        // 这个写成两部分，先循环发送请求。然后进入死循环等待消息，或者路被让开执行move移动，或者没有让路执行detour移动后跳出。wy
-        // 写在一起，如果在其它棋子等待的1s内发送请求，是不会立刻得到响应。wy
 
     }
 
@@ -191,7 +190,7 @@ public class Agent extends Thread {
     }
 
     private boolean handleRequest(Message message) {
-        //从消息中获得棋子id和其位置
+        //Get the piece id and its position from the message
         int senderPosition = -1;
         String content = message.getContent();
         if (content.startsWith("REQUEST_MOVE")) {
@@ -200,7 +199,7 @@ public class Agent extends Thread {
         }
         int[] requestAgents = {0, 0, 0, 0};
         int[] direction = direction();
-        //第一种情况，让路的路径恰巧也在移动方向上且没有被阻塞，则允许让路
+        //In the first case, where the path to give way also happens to be in the direction of movement and is not blocked, giving way is allowed
 
         for (int i = 0; i < 4; i++) {
             if (direction[i] < 0 || direction[i] > 24) {
@@ -210,7 +209,7 @@ public class Agent extends Thread {
                 }
             } else if (direction[i] != -1 && direction[i] != senderPosition) {
                 if (map.get(direction[i]) == 0) {
-                    move(agentId, direction[i]);  // 记录信息，由run中的move实现移动 wy
+                    move(agentId, direction[i]);  // Record information, move by move in run
                     sendResponse(message.getSenderId(), "ALLOW_MOVE");
                     return true;
                 }else {
@@ -225,9 +224,8 @@ public class Agent extends Thread {
         for (int i = 0; i < 4; i++) {
             if (requestAgents[i] != 0) {
                 response = 1;
-                sendRequest(requestAgents[i], currentPosition);// 请求，等待，交由handleRequest处理
+                sendRequest(requestAgents[i], currentPosition);// Request, wait, hand over to handleRequest
 
-                // 最好循环等待，收到消息跳出，标记移动位置，由run中的move实现移动 wy
                 receiveResponse();
                 if (agentResponse.get(requestAgents[i]).equals("ALLOW_MOVE")) {
                     return true;
@@ -246,7 +244,7 @@ public class Agent extends Thread {
     }
 
     private boolean receiveResponse() {
-        //遍历消息列表，找到自己的消息
+        //Iterate through the list of messages to find your own
         for (Message message : messageList.getUnreadMessageList(agentId)) {
             if (!message.isRead() && message.getReceiverId() == agentId && message.getType() == MessageTypeEnum.RESPONSE) {
                 System.out.println("Agent" + agentId + " received response: " + message.getContent());
@@ -273,7 +271,7 @@ public class Agent extends Thread {
         }
         int nextPosition = -1;
         for (int i = 0; i < 4; i++) {
-            //绕路也不走回头路
+            //detours but no backtracking
             if (direction[i] == -1) {
                 switch (i) {
                     case 0 -> {
@@ -315,7 +313,7 @@ public class Agent extends Thread {
             }
         }
         if (nextPosition!=-1&&nextPosition <25) {
-            // 绕路，并记录当前位置，避免下次行动回到该位置
+            // Detour and record current position to avoid returning to that position for the next action
             this.record.put(currentPosition,nextPosition);
             lastPosition = currentPosition;
             move(agentId, nextPosition);
