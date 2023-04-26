@@ -72,7 +72,7 @@ public class Agent extends Thread {
                         stopThread();
                     }
                 } else {
-                    receiveRequest();
+                    receiveRequest();// 要判断该函数是否导致了棋子移动，如果移动了，则下个函数move需要跳过，保证每秒最多移动一次 wy
                     move();
                 }
             } catch (Exception e) {
@@ -166,11 +166,15 @@ public class Agent extends Thread {
                 Detour();
             }
         }
+        // 这个写成两部分，先循环发送请求。然后进入死循环等待消息，或者路被让开执行move移动，或者没有让路执行detour移动后跳出。wy
+        // 写在一起，如果在其它棋子等待的1s内发送请求，是不会立刻得到响应。wy
+
     }
 
     private void move(int agentId, int position) {
         map.set(currentPosition, 0);
         map.set(position, agentId);
+        // 在普通move中，重置 lastPosition =-1 wy
         System.out.println("Agent" + agentId + " moves from " + currentPosition + " to " + position);
         map.printMap();
         currentPosition = position;
@@ -182,7 +186,7 @@ public class Agent extends Thread {
 
     private boolean handleRequest(Message message) {
         //从消息中获得棋子id和其位置
-        int senderPosition = 0;
+        int senderPosition = -1;
         String content = message.getContent();
         if (content.startsWith("REQUEST_MOVE")) {
             String[] messageArray = content.split(" ");
@@ -191,20 +195,42 @@ public class Agent extends Thread {
         int[] requestAgents = {0, 0, 0, 0};
         int[] direction = direction();
         //第一种情况，让路的路径恰巧也在移动方向上且没有被阻塞，则允许让路
+
         for (int i = 0; i < 4; i++) {
             if (direction[i] < 0 || direction[i] > 24) {
                 if (i == 3) {
                     sendResponse(message.getSenderId(), "REFUSE_MOVE");
                     return true;
                 }
-            } else if (direction[i] != 0 && direction[i] != senderPosition) {
+            } else if (direction[i] != -1 && direction[i] != senderPosition) {
                 if (map.get(direction[i]) == 0) {
-                    move(agentId, direction[i]);
+                    move(agentId, direction[i]);  // 记录信息，由run中的move实现移动 wy
                     sendResponse(message.getSenderId(), "ALLOW_MOVE");
                     return true;
                 }
             } else if (direction[i] != senderPosition) {
                 //如果被阻塞,且阻塞棋子不是请求棋子,则记录该棋子id
+                /**
+                 *        for(int i=0;i<4;i++) {
+                 *             if (direction[i] != -1 && direction[i] != position) {
+                 *                 if (MapChess.getInstant()[direction[i]] == 0) {
+                 *                     this.give_way_position=direction[i];
+                 *                     this.allow = true;
+                 *                     // 记录可让路的位置，向父棋子发送"回复请求"
+                 *                     // return;结束函数
+                 *                 }else
+                 *                     request_agence[i] = MapChess.getInstant()[direction[i]];
+                 *                     //如果被阻塞,且阻塞棋子不是请求棋子,则记录该棋子id
+                 *             }
+                 *         }
+                 *
+                 *   注意 ，这里判断是否记录id的条件是该位置是否有棋子 wy
+                 *
+                 *
+                 *
+                 *
+                 *
+                 * */
                 requestAgents[i] = map.get(direction[i]);
             }
         }
@@ -213,6 +239,8 @@ public class Agent extends Thread {
             if (requestAgents[i] != 0) {
                 response = 1;
                 sendRequest(requestAgents[i], currentPosition);// 请求，等待，交由handleRequest处理
+
+                // 最好循环等待，收到消息跳出，标记移动位置，由run中的move实现移动 wy
                 receiveResponse();
                 if (agentResponse.get(requestAgents[i]).equals("ALLOW_MOVE")) {
                     return true;
