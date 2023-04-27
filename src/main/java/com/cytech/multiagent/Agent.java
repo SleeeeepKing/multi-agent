@@ -146,10 +146,12 @@ public class Agent extends Thread {
         int[] direction = this.direction();
         for (int i = 0; i < 4; i++) {
             //Possible movement if not -1
-            if (direction[i] != -1&&direction[i]!=this.lastPosition) {
+            if (direction[i] != -1) {
                 //If there are no pieces in that position, move directly back to true
-                if (map.get(direction[i]) == 0) {
+                if (map.get(direction[i]) == 0&&direction[i]!=this.lastPosition) {
                     move(agentId, direction[i]);
+
+                    this.lastPosition=-2;
                     return;
                 } else {
                     //If a piece is in the way and does not refuse to give way, record
@@ -179,7 +181,7 @@ public class Agent extends Thread {
         map.set(currentPosition, 0);
         map.set(position, agentId);
         this.ismoved=true;
-        this.lastPosition=-2;
+
         System.out.println("Agent" + agentId + " moves from " + currentPosition + " to " + position);
         map.printMap();
         currentPosition = position;
@@ -210,6 +212,7 @@ public class Agent extends Thread {
             } else if (direction[i] != -1 && direction[i] != senderPosition) {
                 if (map.get(direction[i]) == 0) {
                     move(agentId, direction[i]);  // Record information, move by move in run
+                    this.lastPosition=-2;
                     sendResponse(message.getSenderId(), "ALLOW_MOVE");
                     return true;
                 }else {
