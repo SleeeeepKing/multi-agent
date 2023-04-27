@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 
+import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -35,7 +36,7 @@ public class Application {
         for (int i = 1; i < 5; i++) {
             while (true) {
                 int position = r.nextInt(25);
-                if (start[i] != position) {
+                if (start[i] != position && Arrays.stream(end).noneMatch(x -> x == position)) {
                     end[i] = position;
                     break;
                 }
